@@ -8,6 +8,7 @@ import {
 } from '../core/index.js';
 
 const { items: CATALOG, skills: SKILLS, venues: VENUES } = JSON.parse(readFileSync(new URL('../src/data/items.json', import.meta.url), 'utf8'));
+const PROGRESS = JSON.parse(readFileSync(new URL('../src/data/progression.json', import.meta.url), 'utf8'));
 const itemName = (guid) => CATALOG[guid]?.name ?? `Unknown item ${guid}`;
 
 // Skill levels are stored from 0 but shown from 1 in the game; the CLI speaks the game's numbers.
@@ -48,7 +49,8 @@ const USAGE = `Usage:
   nnsave venues <file.sav>
   nnsave edit <file.sav> [--money <credits>] [--set Name.Var=value]... [--add-item <container>:<item>:<qty>]...
               [--skill <name>=<level>]... [--venue <venue>.(level|served|stars)=<n>]...
-              [--finish-story] (-o <out.sav> | --in-place)`;
+              [--finish-story] [--unlock-recipes] [--unlock-venues] [--max-venues] [--complete-achievements]
+              [--complete-save] (-o <out.sav> | --in-place)`;
 
 const load = (path) => parseSave(new Uint8Array(readFileSync(path)));
 const show = (v) => (typeof v === 'string' ? JSON.stringify(v) : String(v));
@@ -161,6 +163,7 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
       let out;
       let inPlace = false;
       let storyMode;
+      const actions = new Set();
       for (let i = 0; i < rest.length; i++) {
         const a = rest[i];
         if (a === '--money') edits.moneyCents = parseCredits(rest[++i]);
@@ -173,13 +176,43 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
         else if (a === '-o') out = rest[++i];
         else if (a === '--in-place') inPlace = true;
         else if (a === '--finish-story' || a === '--finish-story-flags') storyMode = true;
+        else if (['--unlock-recipes', '--unlock-venues', '--max-venues', '--complete-achievements', '--complete-save'].includes(a)) actions.add(a);
         else throw new Error(`Unknown option ${a}`);
       }
       if (!out && !inPlace) throw new Error('Specify -o <out.sav> or --in-place');
       const save = load(path);
+      if (actions.has('--complete-save')) {
+        storyMode = true;
+        for (const a of ['--unlock-recipes', '--unlock-venues', '--max-venues', '--complete-achievements']) actions.add(a);
+        for (const e of save.skills.entries) {
+          const info = SKILLS[e.guid]; if (info) (edits.skills ??= {})[e.guid] = { level: info.steps.length - 1, xp: xpForLevel(info.steps, info.steps.length - 1) };
+        }
+      }
       if (storyMode !== undefined) {
-        console.log('Reviewed completion flags and one outcome per supported choice group staged. This does not run quests or guarantee full story completion.');
+        console.log('Journal completion, reviewed flags and one outcome per supported choice group staged. Reward scripts and cutscenes are not replayed.');
         edits.variables = { ...storyCompletionEdits(listVariables(save)), ...edits.variables };
+        edits.completeQuests = PROGRESS.quests.map((q) => q.guid);
+      }
+      if (actions.has('--unlock-recipes')) edits.unlockRecipes = PROGRESS.recipes;
+      if (actions.has('--complete-achievements')) {
+        edits.achievements = {};
+        for (const e of save.achievements?.entries ?? []) {
+          const spec = PROGRESS.achievements[e.guid]; if (spec) edits.achievements[e.guid] = { completed: spec.count, earned: spec.total, isCompleted: true, ...(e.flags.length ? { flags: e.flags.map(() => true) } : {}) };
+        }
+      }
+      if (actions.has('--unlock-venues') || actions.has('--max-venues')) {
+        const vars = new Map(listVariables(save).map((v) => [v.name, v]));
+        if (actions.has('--unlock-venues')) edits.unlockProperties = [];
+        for (const [id, info] of Object.entries(VENUES)) {
+          const owned = `${info.internal}.Owned`;
+          if (vars.get(owned)?.kind !== 'bool') continue;
+          const stats = findVenue(save, id); if (!stats) continue;
+          if (actions.has('--unlock-venues')) { edits.unlockProperties.push(id); edits.variables[owned] = true; }
+          if (actions.has('--max-venues') && (edits.variables[owned] ?? vars.get(owned).value)) {
+            (edits.venues ??= {})[id] = { level: 5, mealsServed: Math.max(stats.mealsServed, 10000), ...(stats.reviews.length ? { reviewScore: 5 } : {}) };
+            for (const [key, value] of Object.entries({ Level: 5, CustomersServed: edits.venues[id].mealsServed, ...(stats.reviews.length ? { ReviewScore: 5 } : {}) })) if (vars.get(`${info.internal}.${key}`)?.kind === 'int') edits.variables[`${info.internal}.${key}`] = value;
+          }
+        }
       }
       if (!save.header.versionTested) console.log(`WARNING: save version ${save.header.version} is untested; the game may not load the edited save correctly`);
       for (const spec of skillLevels) {

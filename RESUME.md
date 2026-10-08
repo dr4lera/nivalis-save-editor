@@ -1,6 +1,6 @@
-# Pause checkpoint — 8 October 2026
+# Historical pause checkpoint — 8 October 2026
 
-User asked to stop for the night and finish tomorrow. Do not continue, schedule work, or drive the game until the user resumes.
+Resumed on 8 October 2026. The new completion controls, comparisons, CLI actions, tests and Windows 1.7.0 build are now complete. All 29 tests and browser integration checks passed. The user reported everything worked in-game. Remaining release work: publish the committed branch and verified ZIP/EXE/checksums to GitHub. The notes below describe the earlier unfinished checkpoint and are historical, not current blockers.
 
 ## Goal and latest feedback
 

@@ -92,7 +92,7 @@ function validateGuids(guids) {
 // The game reads it into CompletedQuests, preventing it from reappearing as active.
 function completedQuest(guid, number, gameSeconds, start) {
   const tag = encodeString(`RuntimeQuest_${guid}`);
-  const payload = concatBytes([int(0), encodeString(guid), int(2), new Uint8Array([0]), int(number), int(gameSeconds), int(0), int(0), int(0), int(0)]);
+  const payload = concatBytes([int(0), encodeString(guid), int(2), new Uint8Array([0]), int(number), int(gameSeconds), int(0), int(0), int(0), int(0), int(0)]);
   return concatBytes([tag, int(start + tag.length * 2 + 4 + payload.length), payload, tag]);
 }
 

@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { parseAchievements, encodeAchievements, achievementWrites, achievementSnapshot,
   storyCompletionEdits, storyChoiceConflicts, STORY_CHOICE_GROUPS, parseSave, applyEdits, diffSaves, roundTripCheck, listVariables, SaveFormatError, UnsupportedEditError } from '../core/index.js';
 import { encodeString } from '../core/binary.js';
+import { indexSerializedBlocks } from '../core/index.js';
+const catalog = JSON.parse(readFileSync(new URL('../src/data/progression.json', import.meta.url)));
 
 const guid = '8fa2c9dc-d919-44ef-8b85-5d530e012b24';
 const fixture = () => {
@@ -68,6 +70,34 @@ test('story completion sets reviewed flags, selects one outcome and ignores unkn
 const dir = process.env.NN_SAVE_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.sav')) : [];
 for (const file of files) {
+  test(`${file}: full journal, recipe, property and achievement edits preserve every serialized boundary`, () => {
+    const source = readFileSync(join(dir, file));
+    const save = parseSave(source);
+    const achievements = Object.fromEntries(save.achievements.entries.map((e) => {
+      const s = catalog.achievements[e.guid];
+      return [e.guid, { completed: s.count, earned: s.total, isCompleted: true, ...(e.flags.length ? { flags: e.flags.map(() => true) } : {}) }];
+    }));
+    const venues = JSON.parse(readFileSync(new URL('../src/data/items.json', import.meta.url))).venues;
+    const extraProperty = Object.keys(venues).find((id) => venues[id].internal.startsWith('Venue_') && !save.progression.properties.guids.includes(id));
+    const player = save.inventory.containers.find((c) => c.key === 'PLAYER_INVENTORY');
+    const items = structuredClone(player.items); items.push(structuredClone(items[0]));
+    const bytes = applyEdits(save, { completeQuests: catalog.quests.map((q) => q.guid), unlockRecipes: catalog.recipes,
+      unlockProperties: [extraProperty], achievements, variables: storyCompletionEdits(listVariables(save)), inventory: { PLAYER_INVENTORY: items } });
+    const after = parseSave(bytes);
+    assert.equal(after.progression.quests.active.length, 0);
+    assert.equal(after.progression.quests.completed.length, catalog.quests.length);
+    assert.ok(after.progression.quests.completed.every((q) => q.state === 2));
+    assert.ok(catalog.recipes.every((id) => after.progression.recipes.guids.includes(id)));
+    assert.equal(after.progression.properties.guids.length, save.progression.properties.guids.length + 1);
+    assert.equal(after.achievements.points, Object.values(catalog.achievements).reduce((n, s) => n + s.total, 0));
+    assert.ok(after.achievements.entries.every((e) => e.isCompleted));
+    assert.deepEqual(roundTripCheck(after), []);
+    assert.ok(indexSerializedBlocks(bytes).length > after.ghostBlocks.length);
+    assert.ok(diffSaves(save, after).progression.some((p) => p.label === 'Active journal quests' && p.after === 0));
+    assert.deepEqual(source, readFileSync(join(dir, file)));
+    assert.throws(() => applyEdits(save, { unlockRecipes: ['bad'] }), UnsupportedEditError);
+    assert.throws(() => applyEdits(save, { unlockProperties: [extraProperty, extraProperty] }), UnsupportedEditError);
+  });
   test(`${file}: achievements and bulk story edits survive inventory resizing without touching the source`, () => {
     const source = readFileSync(join(dir, file));
     const save = parseSave(source);

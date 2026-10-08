@@ -1,6 +1,6 @@
 [package]
 name = "nivalis-save-editor"
-version = "1.6.1"
+version = "1.7.0"
 description = "Savegame editor for Nivalis Nights"
 authors = ["RenokK"]
 license = "CC-BY-NC-4.0"

@@ -112,7 +112,11 @@ function refreshAfterVarEdit() {
 }
 
 function setVariableEdit(name, value, { fromBatch = false } = {}) {
-  if (!fromBatch && state.storyBatch) state.storyBatch = state.storyBatch.filter((entry) => entry.name !== name);
+  if (!fromBatch && state.storyBatch) {
+    const questBefore = state.storyBatch.questBefore;
+    state.storyBatch = state.storyBatch.filter((entry) => entry.name !== name);
+    state.storyBatch.questBefore = questBefore;
+  }
   const original = state.current.varIndex.get(name);
   if (value === original.value) state.edits.variables.delete(name);
   else state.edits.variables.set(name, value);
@@ -507,7 +511,7 @@ function achievementsShellHtml() {
     <button class="btn btn-primary" id="achievement-complete-all">Complete all achievements</button>
     <button class="btn" id="achievement-business-complete">Complete all business entries</button>
     <button class="btn btn-ghost" id="achievement-reset">Revert all achievement edits</button></div>
-    <p class="hint">Saved achievement progress. Counters do not discover collectibles or finish quests, and Steam unlocks are not guaranteed. Individual entry toggles are available where the save stores them. The saved series completion state is preserved.</p>
+    <p class="hint">Complete all achievements sets every supported series to its full count, points and completion state. Collectible discovery records and Steam unlocks are separate; this does not discover every individual collectible or replay its interaction.</p>
     <div id="achievement-rows" class="achievement-grid"></div>`;
 }
 
@@ -515,13 +519,15 @@ function renderAchievementRows() {
   const section = state.current.save.achievements;
   if (!section) return;
   const expanded = new Set([...document.querySelectorAll('details[data-achievement-details][open]')].map((el) => el.dataset.achievementDetails));
-  const total = section.points + section.entries.reduce((n, entry) => n + (achievementValues(entry).earned - entry.earned), 0);
+  const allComplete = section.entries.every((e) => state.edits.achievements.get(e.guid)?.isCompleted === true);
+  const total = allComplete ? section.entries.reduce((n, e) => n + achievementValues(e).earned, 0)
+    : section.points + section.entries.reduce((n, entry) => n + (achievementValues(entry).earned - entry.earned), 0);
   const rows = section.entries.filter((entry) => achievementName(entry.guid).toLowerCase().includes(state.achievementSearch.toLowerCase().trim()));
   $('#achievement-count').textContent = `${rows.length} series · ${total} saved points`;
   $('#achievement-rows').innerHTML = rows.map((entry) => {
     const value = achievementValues(entry);
     const modified = state.edits.achievements.has(entry.guid);
-    return `<div class="card ${modified ? 'modified' : ''}"><h2>${escapeHtml(achievementName(entry.guid))}</h2>
+    return `<div class="card ${modified ? 'modified' : ''}"><h2>${escapeHtml(achievementName(entry.guid))} ${value.isCompleted ? '<span class="badge">Complete</span>' : ''}</h2>
       <div class="achievement-fields"><label>Completed entries <input class="num" type="number" min="0" max="${INT32_MAX}" step="1" data-achievement="${entry.guid}" data-achievement-field="completed" value="${value.completed}" ${entry.flags.length ? 'disabled' : ''}></label>
       <label>Saved points <input class="num" type="number" min="0" max="${INT32_MAX}" step="1" data-achievement="${entry.guid}" data-achievement-field="earned" value="${value.earned}"></label></div>
       ${entry.flags.length ? `<details data-achievement-details="${entry.guid}" ${expanded.has(entry.guid) ? 'open' : ''}><summary>Individual entries (${value.completed}/${entry.flags.length})</summary>${value.flags.map((flag, i) => `<label class="check achievement-entry"><input type="checkbox" data-achievement="${entry.guid}" data-achievement-entry="${i}" ${flag ? 'checked' : ''}>${escapeHtml(achievementName(entry.guid) === 'Business' && entry.flags.length === BUSINESS_ENTRIES.length ? BUSINESS_ENTRIES[i] : `Entry ${i + 1}`)}</label>`).join('')}</details>` : '<p class="hint">This series stores counters rather than individual entry flags.</p>'}
@@ -555,7 +561,7 @@ function progressionHtml() {
   return `<section class="card"><h2>Completion tools</h2><div class="toolbar">
     <button class="btn btn-primary" id="complete-save">100% save preset</button>
     <button class="btn" id="recipes-unlock-all">Unlock all recipes</button>
-    <button class="btn btn-ghost" id="progression-reset">Revert progression edits</button></div>
+    <button class="btn btn-ghost" id="progression-reset">Revert quest and recipe edits</button></div>
     <p class="hint">${state.edits.completeQuests ? 0 : p.quests?.active.length ?? 0} active journal quests · ${state.edits.unlockRecipes ? progressCatalog.recipes.length : p.recipes?.guids.length ?? 0}/${progressCatalog.recipes.length} recipes. The preset completes journal quests, achievement progress, started skills, recipes and purchasable venues. Scripted quest rewards and scenes are not replayed.</p></section>`;
 }
 
@@ -953,12 +959,14 @@ function diffHtml(diff, beforeLabel, afterLabel, { allowTake = false } = {}) {
       const label = (v) => v ? `${v.completed} entries · ${v.earned} points · flags ${v.flags.map(Number).join('') || 'none'}` : 'Not present';
       return `<tr><td>${escapeHtml(achievementName(a.guid))}</td><td class="before">${escapeHtml(label(a.before))}</td><td class="after">${escapeHtml(label(a.after))}</td></tr>`;
     }).join('')}</tbody></table></div>` : '';
-  return headerCard + skillsCard + achievementsCard + inventoryCard + variablesCard;
+  const progressionCard = diff.progression?.length ? `<div class="card"><h2>Completion progress</h2><table class="diff vars"><thead><tr><th>Progress</th><th>${escapeHtml(beforeLabel)}</th><th>${escapeHtml(afterLabel)}</th></tr></thead><tbody>${diff.progression.map((p) => `<tr><td>${escapeHtml(p.label)}</td><td class="before">${p.before}</td><td class="after">${p.after}</td></tr>`).join('')}</tbody></table></div>` : '';
+  return headerCard + progressionCard + skillsCard + achievementsCard + inventoryCard + variablesCard;
 }
 
 // One-line description of an edit, stored with the backup taken before it.
 function summarizeDiff(diff) {
   const parts = [];
+  for (const p of diff.progression ?? []) parts.push(`${p.label} ${p.before} → ${p.after}`);
   if (diff.achievements?.length) parts.push(`${diff.achievements.length} achievement series changed`);
   for (const h of diff.header) parts.push(`${HEADER_LABELS[h.field]} ${formatHeaderValue(h.field, h.before)} → ${formatHeaderValue(h.field, h.after)}`);
   for (const s of diff.skills) {
@@ -1170,7 +1178,7 @@ document.addEventListener('click', async (e) => {
   else if (t.id === 'story-finish-all') await stageStoryToggles();
   else if (t.id === 'complete-save') await completeSavePreset();
   else if (t.id === 'recipes-unlock-all') { state.edits.unlockRecipes = progressCatalog.recipes; renderPending(); renderTab(); }
-  else if (t.id === 'progression-reset') { state.edits.completeQuests = null; state.edits.unlockRecipes = null; state.edits.unlockProperties = null; renderPending(); renderTab(); }
+  else if (t.id === 'progression-reset') { state.edits.completeQuests = null; state.edits.unlockRecipes = null; renderPending(); renderTab(); }
   else if (t.id === 'venues-unlock-all') {
     if (await ask('Grant all purchasable venues in this save? Ownership records and matching story flags will be staged together.', { title: 'Unlock venues', kind: 'warning' })) { stageVenueUnlocks(); renderPending(); renderTab(); }
   }
@@ -1186,7 +1194,7 @@ document.addEventListener('click', async (e) => {
       // Keep any manual edits made after the batch.
       if (currentValue(state.current.varIndex.get(name)) === after) setVariableEdit(name, before);
     }
-    state.storyBatch = null; renderTab();
+    state.storyBatch = null; renderPending(); renderTab();
   }
   else if (t.dataset.achievementRevert) { state.edits.achievements.delete(t.dataset.achievementRevert); renderPending(); renderAchievementRows(); }
   else if (t.dataset.addCredits) {

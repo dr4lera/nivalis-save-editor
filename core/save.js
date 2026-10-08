@@ -375,6 +375,7 @@ function verifyEdited(original, bytes, edits) {
       Object.assign(entry, edit);
       if (edit.flags) entry.flags = edit.flags.map(Number);
     }
+    if (original.achievements.entries.every((e) => edits.achievements[e.guid]?.isCompleted === true)) expectedAchievements.points = expectedAchievements.entries.reduce((n, e) => n + e.earned, 0);
   }
   if (JSON.stringify(achievementSnapshot(reparsed.achievements)) !== JSON.stringify(expectedAchievements)) throw new SaveFormatError('Achievements did not verify after edit');
   if (reparsed.ghostBlocks.length !== original.ghostBlocks.length) throw new SaveFormatError('Ghost block index changed after edit');
@@ -503,7 +504,16 @@ export function diffSaves(a, b) {
     return JSON.stringify(pick(before)) === JSON.stringify(pick(entry)) ? [] : [{ guid: entry.guid, before: pick(before), after: pick(entry) }];
   });
   for (const entry of oldAchievements.values()) achievements.push({ guid: entry.guid, before: entry, after: undefined });
-  return { header, variables, achievements, inventory: diffInventories(a.inventory, b.inventory), skills: diffSkills(a.skills, b.skills) };
+  const progression = [];
+  for (const [section, label] of [['recipes', 'Recipes unlocked'], ['properties', 'Properties owned']]) {
+    const beforeIds = a.progression?.[section]?.guids ?? [], afterIds = b.progression?.[section]?.guids ?? [];
+    if (JSON.stringify(beforeIds) !== JSON.stringify(afterIds)) progression.push({ label, before: beforeIds.length, after: afterIds.length });
+  }
+  for (const [list, label] of [['active', 'Active journal quests'], ['completed', 'Completed journal quests']]) {
+    const pick = (s) => s.progression?.quests?.[list]?.map(({ guid, state }) => [guid, state]) ?? [];
+    if (JSON.stringify(pick(a)) !== JSON.stringify(pick(b))) progression.push({ label, before: pick(a).length, after: pick(b).length });
+  }
+  return { header, variables, achievements, progression, inventory: diffInventories(a.inventory, b.inventory), skills: diffSkills(a.skills, b.skills) };
 }
 
 function diffSkills(a, b) {

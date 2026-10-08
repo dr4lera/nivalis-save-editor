@@ -83,6 +83,7 @@ export function achievementWrites(section, edits) {
     }
     points += (edit.earned ?? entry.earned) - entry.earned;
   }
+  if (section.entries.every((e) => edits[e.guid]?.isCompleted === true)) points = section.entries.reduce((n, e) => n + (edits[e.guid].earned ?? e.earned), 0);
   if (!Number.isInteger(points) || points < 0 || points > 2147483647) throw new UnsupportedEditError('Achievement total points would be out of range');
   writes.push([section.pointsOffset, points, 4]);
   return writes;

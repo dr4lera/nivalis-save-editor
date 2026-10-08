@@ -6,8 +6,9 @@ A small desktop editor for **Nivalis Nights** save files (`.sav`), built with Ta
 - Edit **money**
 - **Skills**: set the level of each skill you have started (Barter, Boat, Cooking, Farming, Fishing, Serving, Managing)
 - Browse, search and edit the game's **1,800+ story variables** (flags and numbers: relationships, venue levels, quest steps, …)
-- **Finish all story**: one button applies reviewed completion flags and picks one outcome per supported choice group, clearing competing alternatives. Success wins over known failures; coffee choices use option 1, Reehan uses the fleshy route, and Ashwin uses Bonaventure. Preview and undo are available before saving. Numeric quest endpoints and unsupported branches are not guessed; full in-game completion has not been verified.
+- **Finish all story**: stages all 113 catalogued journal quests as completed, removes their active objectives, applies reviewed completion flags and picks one outcome per supported choice group. Success wins over known failures; coffee choices use option 1, Reehan uses the fleshy route, and Ashwin uses Bonaventure. Preview and undo are available. Reward scripts and cutscenes are not replayed; full in-game behavior still needs verification.
 - **Bulk completion tools**: complete all 17 saved business achievement entries, or max all started skills using their catalog XP thresholds; both are staged, reviewable and revertible before saving.
+- **Completion preset (1.7)**: stages journal completion, all 192 recipe unlocks, 15 purchasable venues, level 5/10,000 customers/five-star existing reviews, all started skills, and full counters/points/completion flags for the 11 supported achievement series. Recipe customizations and unrelated properties are preserved. Achievement discovery records are separate: it does not mark every individual collectible as discovered, and Steam unlocks are not guaranteed.
 - **Achievements**: browse and search 11 named achievement series, edit saved counters and points, and toggle the 17 individually stored business entries. Edits use the normal verified save and backup workflow, update total saved points and appear in comparisons. Steam unlocks and in-game completion have not been verified.
 - **Inventory**: view and edit the items in your inventory, your venues' storage, fridges and furniture, and vendor stock; add any of 1,300+ items, change quantities and freshness
 - **Compare** two saves to see which variables a quest step changed, and copy values across
@@ -61,6 +62,9 @@ npm run cli -- venues <save.sav>
 npm run cli -- edit  <save.sav> --money 2500.00 --set GameState.Debt=0 --skill Boat=3 -o out.sav
 npm run cli -- edit  <save.sav> --venue Venue_NoodleBar.level=5 --venue Venue_NoodleBar.served=600 --venue Venue_NoodleBar.stars=5 -o out.sav
 npm run cli -- edit  <save.sav> --finish-story -o out.sav
+node cli/nnsave.js edit <save.sav> --unlock-recipes --unlock-venues --max-venues -o out.sav
+node cli/nnsave.js edit <save.sav> --complete-achievements -o out.sav
+node cli/nnsave.js edit <save.sav> --complete-save -o out.sav
 ```
 
 ## Layout
