@@ -23,6 +23,7 @@ import { parseSkills, SKILLS_KEY } from './skills.js';
 import { findVenue, venueWrites } from './venues.js';
 import { parseAchievements, achievementWrites, achievementSnapshot, encodeAchievements } from './achievements.js';
 import { storyChoiceConflicts } from './story.js';
+import { indexSerializedBlocks, parseProgression, applyProgressionEdits } from './progression.js';
 
 export { SaveFormatError, UnsupportedEditError };
 
@@ -148,6 +149,7 @@ export function parseSave(input) {
   const inventory = parseInventory(bytes);
   const skills = parseSkills(bytes);
   const achievements = parseAchievements(bytes);
+  const progression = parseProgression(bytes, playerMoney.offset);
 
   const warnings = [];
   if (playerMoney.value !== header.moneyCents) {
@@ -169,7 +171,7 @@ export function parseSave(input) {
     warnings.push('Variable tables have different lengths');
   }
 
-  return { bytes, header, ghostBlocks, tables, playerMoney, inventory, skills, achievements, tablesConsistent, warnings };
+  return { bytes, header, ghostBlocks, tables, playerMoney, inventory, skills, achievements, progression, tablesConsistent, warnings };
 }
 
 // Current in-game day as the game counts it (GameDay.Day, 1-based); used for newly added stacks.
@@ -307,7 +309,11 @@ export function applyEdits(save, edits) {
   }
 
   const invEdits = new Map(Object.entries(edits.inventory ?? {}));
-  const result = invEdits.size ? spliceInventory(save, out, invEdits) : out;
+  let result = invEdits.size ? spliceInventory(save, out, invEdits) : out;
+  if (edits.completeQuests || edits.unlockRecipes || edits.unlockProperties) {
+    const current = parseSave(result);
+    result = applyProgressionEdits(result, edits, current.playerMoney.offset, current.header.gameSeconds);
+  }
   verifyEdited(save, result, edits);
   return result;
 }
@@ -333,14 +339,15 @@ function spliceInventory(save, bytes, invEdits) {
   result.set(body, bodyStart);
   result.set(bytes.subarray(end), bodyStart + body.length);
 
-  for (const g of save.ghostBlocks) {
+  const allBlocks = indexSerializedBlocks(save.bytes);
+  for (const g of allBlocks) {
     if (g.start < end && g.end > bodyStart) throw new SaveFormatError('A Ghost block overlaps the inventory section');
     if (g.start >= end) writeInt32(result, g.endOffsetPos + delta, g.end + delta);
   }
 
   // Everything outside the section must be unchanged apart from the shifted Ghost end offsets.
   const shiftedOffsetFields = new Set();
-  for (const g of save.ghostBlocks) {
+  for (const g of allBlocks) {
     if (g.start >= end) for (let i = 0; i < 4; i++) shiftedOffsetFields.add(g.endOffsetPos + delta + i);
   }
   for (let i = 0; i < bodyStart; i++) {
@@ -356,6 +363,10 @@ function spliceInventory(save, bytes, invEdits) {
 
 function verifyEdited(original, bytes, edits) {
   const reparsed = parseSave(bytes);
+  for (const [field, section] of [['unlockRecipes', 'recipes'], ['unlockProperties', 'properties']]) {
+    if (edits[field] && !edits[field].every((id) => reparsed.progression[section].guids.includes(id))) throw new SaveFormatError(`${field} did not verify`);
+  }
+  if (edits.completeQuests && (reparsed.progression.quests.active.length || !edits.completeQuests.every((id) => reparsed.progression.quests.completed.some((q) => q.guid === id && q.state === 2)))) throw new SaveFormatError('Quest completion did not verify');
   const expectedAchievements = achievementSnapshot(original.achievements);
   if (Object.keys(edits.achievements ?? {}).length) {
     for (const [guid, edit] of Object.entries(edits.achievements)) {

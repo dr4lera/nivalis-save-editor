@@ -1,0 +1,719 @@
+{
+  "version": 159,
+  "quests": [
+    {
+      "guid": "69f202f5-c884-4f2f-8fad-597819715a09",
+      "name": "A Date with Zaffer"
+    },
+    {
+      "guid": "580a205a-ffc3-40a4-bbe3-4c6a2b9187ed",
+      "name": "A Drink to the Past"
+    },
+    {
+      "guid": "68518092-1560-4441-ac6b-c1ec1755f20f",
+      "name": "A Hacker's Guide to Exploring Nivalis"
+    },
+    {
+      "guid": "b96a83b1-5635-4f41-8b53-e9670cc72ff7",
+      "name": "A Knight in Nivalis"
+    },
+    {
+      "guid": "11e1f384-9432-429f-9aab-3197581e4d9a",
+      "name": "Acquire Green Reeker"
+    },
+    {
+      "guid": "8eec35d0-5f06-450e-a46e-fc8f9f7b11e9",
+      "name": "An Altar of Ones and Zeros"
+    },
+    {
+      "guid": "8d50f9d4-1cb6-4f7c-aa29-76f50590b350",
+      "name": "Ashwin needs help"
+    },
+    {
+      "guid": "bd42bea3-ca43-4f5b-8b3f-ef80e9fac5f7",
+      "name": "Bad Batch"
+    },
+    {
+      "guid": "92a45e6b-c5ea-488a-887c-cabffa7a077b",
+      "name": "Brooke's Business Opportunity"
+    },
+    {
+      "guid": "7e586aa2-cc39-4c6d-80ee-5156f4a3acf5",
+      "name": "Business Empire"
+    },
+    {
+      "guid": "4370ec7c-da73-4ffa-84c1-f9c2b294ec4a",
+      "name": "More Fridge Space"
+    },
+    {
+      "guid": "56a9239e-02c8-4bc9-8227-a61406fadd21",
+      "name": "Calling Cale Wyer"
+    },
+    {
+      "guid": "d98efd4b-5822-466d-8dcc-a535869c2214",
+      "name": "Cast Iron Alibi"
+    },
+    {
+      "guid": "740396f2-94fd-4ff0-b311-cac6b0c13942",
+      "name": "Chained Melody"
+    },
+    {
+      "guid": "06e0c767-5883-4300-82f0-a3155cf9f073",
+      "name": "Clean up!"
+    },
+    {
+      "guid": "c180d878-f16f-42e2-8524-f85a4422c712",
+      "name": "Comedy Showdown"
+    },
+    {
+      "guid": "18f55e73-8016-4386-bbff-b1af02ba8d0a",
+      "name": "CorpSec Investigations"
+    },
+    {
+      "guid": "94d6d72a-5c63-4b3d-bb74-6ad2ecb0dfc7",
+      "name": "CorpSec Narc"
+    },
+    {
+      "guid": "fbf37f12-2096-4e2f-ab13-a129dcd19158",
+      "name": "Crime Scene Decorator"
+    },
+    {
+      "guid": "4500c90f-f2c2-40ea-ad3f-683c2d590b66",
+      "name": "Curfew"
+    },
+    {
+      "guid": "78e2c08d-e1a8-4ee2-b44b-28ea1d4726c3",
+      "name": "Curzona Penthouse"
+    },
+    {
+      "guid": "90a6fa18-c74f-4b6c-9811-65422ed38ccc",
+      "name": "Dagmar's Sabotage"
+    },
+    {
+      "guid": "867735e1-540a-4a4c-b654-deb22bdc69c5",
+      "name": "Deal with a Devil"
+    },
+    {
+      "guid": "f2bc824a-a454-4e8c-8b87-7421ee273374",
+      "name": "Den of Discovery"
+    },
+    {
+      "guid": "ce1df05b-bc62-4175-bd12-fdead66794e3",
+      "name": "Dive Bar Deity"
+    },
+    {
+      "guid": "bd643d14-1366-47fe-8b1a-85db3006bb35",
+      "name": "Dotson's Detective Agency"
+    },
+    {
+      "guid": "08d06b9b-f397-42fc-980f-3ad5c86ed6c1",
+      "name": "Dr Fred's Drugs"
+    },
+    {
+      "guid": "3ea24116-c1dc-41b8-aebc-eefeebffef93",
+      "name": "Extend Storage"
+    },
+    {
+      "guid": "213c28ca-ec3a-4050-beb4-9a2b622aaaeb",
+      "name": "Find Salma's Brother"
+    },
+    {
+      "guid": "957abeb0-2ec6-48ce-9d26-707b85a77262",
+      "name": "Finding the Enchiridion"
+    },
+    {
+      "guid": "fa321164-ca61-4966-99db-bdfce4c2ca52",
+      "name": "Fix Rosetta"
+    },
+    {
+      "guid": "54ee00dd-c28a-4ad9-b07b-8c2610582f57",
+      "name": "Fun in the Sun"
+    },
+    {
+      "guid": "27363ef0-6934-4356-a9b2-03909817f8eb",
+      "name": "Garnet. Single Dad. Seeks Love."
+    },
+    {
+      "guid": "c7ef88d0-abfb-49d2-8ce8-0f21f27880c2",
+      "name": "Get a Loan"
+    },
+    {
+      "guid": "323b218c-5fde-4b82-8fea-0f9ef2cde7ad",
+      "name": "Gladstone's Rats"
+    },
+    {
+      "guid": "85d4de42-f8a5-4e35-89f1-e467612f66e8",
+      "name": "Good Old Gimble"
+    },
+    {
+      "guid": "9f6618ed-3b53-46de-a9bb-ef6820b3590d",
+      "name": "Green Thumb"
+    },
+    {
+      "guid": "52f6df65-ed75-472e-8e32-107cf289bd11",
+      "name": "Hide & Seek"
+    },
+    {
+      "guid": "c486b7fc-9b49-4571-ae52-466ccb6b8981",
+      "name": "Historical Place of Wisdom"
+    },
+    {
+      "guid": "10d23cd4-7d54-4f1a-b77a-3f955b4d54b3",
+      "name": "Hygiene Inspector"
+    },
+    {
+      "guid": "325acf9a-8aa9-47c8-8c33-843ebf9d4666",
+      "name": "I.O.U."
+    },
+    {
+      "guid": "a6a38834-da0b-43cd-b9ec-d6e3ef2e7e4d",
+      "name": "It's My Birthday!"
+    },
+    {
+      "guid": "05ad8f8a-5ba3-482f-b432-ce344c58098c",
+      "name": "Level Up!"
+    },
+    {
+      "guid": "58f2c5c6-51f2-42a6-8fc4-17d1b469381b",
+      "name": "Lochlainn's Pain"
+    },
+    {
+      "guid": "04fd9f36-b0e1-4a21-abe5-7a386c937c95",
+      "name": "Lost at Sea"
+    },
+    {
+      "guid": "cc88ae98-a17e-4838-9c2f-5cb733456beb",
+      "name": "Lost Property"
+    },
+    {
+      "guid": "817662d3-6203-42a5-a359-f8cabfb50452",
+      "name": "Lost Time"
+    },
+    {
+      "guid": "322ed8a8-9852-42b3-bf46-46615cb38888",
+      "name": "Love Den"
+    },
+    {
+      "guid": "e73938fb-e894-44dd-b127-48c94e13f250",
+      "name": "Lynnphora's Urn"
+    },
+    {
+      "guid": "b463495e-4e39-4775-b40d-5871d4b6b9de",
+      "name": "Ma Gomba's Mushrooms"
+    },
+    {
+      "guid": "27b5f12b-4adc-4807-bbf3-1bb7eea0afb5",
+      "name": "Mala Has Questions"
+    },
+    {
+      "guid": "d100a870-410a-427f-8d25-8b5a48c8f054",
+      "name": "Memories"
+    },
+    {
+      "guid": "f38bff42-c736-4721-bcd6-a46adfc46aeb",
+      "name": "Movers and Shakers"
+    },
+    {
+      "guid": "b3120cbe-6dd1-4a30-9408-0d73c9f672d3",
+      "name": "Nabla's Home IRL"
+    },
+    {
+      "guid": "968b3abd-31a8-4a07-a136-a0397b9f36be",
+      "name": "Naming Rights"
+    },
+    {
+      "guid": "35fc87c8-b0f2-4b25-83f1-991b1333520f",
+      "name": "Neon for Zaffer"
+    },
+    {
+      "guid": "521b91d3-7c5a-487e-b084-e3c02c4139f0",
+      "name": "Neon Sellout"
+    },
+    {
+      "guid": "910cfe9c-777e-4130-964a-fc56b1f6c1e3",
+      "name": "Nivalis Grind"
+    },
+    {
+      "guid": "af5a0d1d-bbc5-4fa9-a377-9358b8b56974",
+      "name": "Noodle Bar Expansion"
+    },
+    {
+      "guid": "f32e72fe-e286-40ff-b37a-fcacfa9057db",
+      "name": "Noodle Bar Introduction"
+    },
+    {
+      "guid": "0e63c9b6-f774-4367-be0b-60c64f1d55c5",
+      "name": "Oil Rig Separatists"
+    },
+    {
+      "guid": "27d15eb1-4dfb-4467-8637-74eec082b3fe",
+      "name": "P.I.S.S."
+    },
+    {
+      "guid": "03b34b11-c21c-472e-80a2-b82a26895378",
+      "name": "Party Haven"
+    },
+    {
+      "guid": "344c4390-efcb-44df-82cb-f5691ddb0258",
+      "name": "Please Delete My Numbers"
+    },
+    {
+      "guid": "195f6095-ef72-4035-852e-6d910402b737",
+      "name": "Poisoned Mustard"
+    },
+    {
+      "guid": "684e90b2-9df6-4f91-bf36-bb2c412ef6f5",
+      "name": "Project Grapevine"
+    },
+    {
+      "guid": "6879f89c-d9a2-4e80-807b-14059a82016e",
+      "name": "Protection Racket"
+    },
+    {
+      "guid": "0a53ffee-27c0-455a-9130-ea5b99b29c21",
+      "name": "Radio Waves"
+    },
+    {
+      "guid": "ca92fa46-e52d-425a-9e52-1e94860bd523",
+      "name": "Rats ate the Bread"
+    },
+    {
+      "guid": "117ae7f4-f303-4c91-8641-3c0dd592496d",
+      "name": "Recruit Sal"
+    },
+    {
+      "guid": "d45520a6-e178-44b2-b377-6695dcc47b59",
+      "name": "Retirement Party"
+    },
+    {
+      "guid": "8b2030db-3a84-429a-9e5b-6c59ce787cba",
+      "name": "Rust to Rust"
+    },
+    {
+      "guid": "cfc60c29-6814-4466-894e-6779b2b953b6",
+      "name": "Seafaring"
+    },
+    {
+      "guid": "0aa386a4-916c-449a-8834-62a86dfc3257",
+      "name": "Seen a Ghost?"
+    },
+    {
+      "guid": "a8e9c4e7-5926-4960-94b6-be6eb3769d1c",
+      "name": "Sell Old Tech"
+    },
+    {
+      "guid": "1f4f8092-ea3c-4d17-9dca-a98fe95132c9",
+      "name": "Silo's Playhouse"
+    },
+    {
+      "guid": "5d5ccd48-5742-43a4-b9d4-764c00313c71",
+      "name": "SimBot Shenanigans"
+    },
+    {
+      "guid": "1eef5373-55ff-4e5f-bc6d-241a7445039c",
+      "name": "Slow Revolution"
+    },
+    {
+      "guid": "8767788f-c41a-433b-804f-8d67eb2e98e0",
+      "name": "Slumlord"
+    },
+    {
+      "guid": "c8d3a17d-e257-4389-b916-ce97d4d24292",
+      "name": "Snapshot"
+    },
+    {
+      "guid": "08d24fbc-b4fc-4bc5-9827-288cd3e14183",
+      "name": "Spartacus's Doom"
+    },
+    {
+      "guid": "ea70ee57-bf9f-466f-9028-cc28afb851df",
+      "name": "Stolen Apartment"
+    },
+    {
+      "guid": "ad793023-dfa1-4c09-9a78-e9867fa6ebb3",
+      "name": "Stranger in Need"
+    },
+    {
+      "guid": "6a710e5e-3eac-4a22-8835-8b32d7b3876d",
+      "name": "Suck it and See"
+    },
+    {
+      "guid": "0d0797b0-456c-48c1-8ff6-2f787aa4eecc",
+      "name": "Surrender Old Tech"
+    },
+    {
+      "guid": "a6d9a368-8759-4407-bc57-fc5a5d2b084a",
+      "name": "Thaddeus Retirement"
+    },
+    {
+      "guid": "3511e6b0-3a9a-487a-aae4-697e7c6b6c07",
+      "name": "The Aseptic"
+    },
+    {
+      "guid": "f69fbeb7-44b9-4b92-af62-30212ef74bb0",
+      "name": "The Bicameralist"
+    },
+    {
+      "guid": "d809465e-dd8c-4b1c-b09c-40017988fe51",
+      "name": "The Church of the Binary God"
+    },
+    {
+      "guid": "ebe79f7e-7137-48e1-8353-87050ea76397",
+      "name": "The Club Rat Kids"
+    },
+    {
+      "guid": "34ddec3f-ba0c-4424-bb6a-1d32232eeeaf",
+      "name": "The Coffee Run"
+    },
+    {
+      "guid": "9c5d1867-f87b-4801-8c4b-74c12e7380f6",
+      "name": "The Critic"
+    },
+    {
+      "guid": "e2ab09d5-38ec-4afd-a718-33562561c811",
+      "name": "The Last of the Roid Droids"
+    },
+    {
+      "guid": "0040fecf-bf68-4740-9ef6-aad7e26723d6",
+      "name": "The Lost Art of Anthony G"
+    },
+    {
+      "guid": "71f6e901-9103-4610-b045-00d0c2efe0c7",
+      "name": "The Lost Leg"
+    },
+    {
+      "guid": "59891d9b-1306-488d-adf4-8694b9c6062a",
+      "name": "The Man Who Murdered Death"
+    },
+    {
+      "guid": "bbe9a9fb-5348-4a8c-8e64-a04ab4e440e7",
+      "name": "The Measurer"
+    },
+    {
+      "guid": "7dac4961-291a-4e42-8d7c-f555952894f4",
+      "name": "The Network"
+    },
+    {
+      "guid": "84214c8c-c7c3-4abf-995f-e1118ac63c4c",
+      "name": "The Pierreponts"
+    },
+    {
+      "guid": "249f7a48-36fe-4f5d-b4ef-9400c93b28e6",
+      "name": "The Scorpion"
+    },
+    {
+      "guid": "0d816aa9-abf2-416d-8eb8-9a09fc032a40",
+      "name": "The Shipping Forecast"
+    },
+    {
+      "guid": "d61dd06c-46a3-46c6-8037-266c6aae188b",
+      "name": "The Songs of Fauxter Glambeat"
+    },
+    {
+      "guid": "be020c09-d376-4a09-8535-0b85546ea0fc",
+      "name": "Therapy Sessions"
+    },
+    {
+      "guid": "ca3fd568-cc31-4e96-8d3a-228af3228d77",
+      "name": "Thirst Trap"
+    },
+    {
+      "guid": "d21f7c66-67be-46b5-be05-ce45b1f7183c",
+      "name": "Tongue Twister"
+    },
+    {
+      "guid": "5c57cb19-d735-4291-8464-ba0cfdecf104",
+      "name": "Trade Talks"
+    },
+    {
+      "guid": "6a59da12-57d3-4b02-9be1-292959863eb3",
+      "name": "Trouble in Announcer Land"
+    },
+    {
+      "guid": "8708f388-93d0-42a9-9ce4-de7201b82da7",
+      "name": "Truth Be Told"
+    },
+    {
+      "guid": "2403212e-b639-4a4f-81e6-81145b8a5058",
+      "name": "Underground Fish Market"
+    },
+    {
+      "guid": "5b1400bf-420a-40a0-8260-d5c6af1659c8",
+      "name": "Vanishing Act"
+    },
+    {
+      "guid": "43855faa-3a83-476b-9ff5-bee52eae3100",
+      "name": "What Did Eldridge Do?"
+    },
+    {
+      "guid": "e5832faa-8a63-4db8-a536-695b06a43e17",
+      "name": "When the Chips are down"
+    },
+    {
+      "guid": "291e9a82-0ed9-4394-b1e4-b42897d02162",
+      "name": "Where is Ava?"
+    }
+  ],
+  "recipes": [
+    "85891985-f2ab-4d73-9b41-1558d7b0d90d",
+    "a05a7d33-72f0-4078-85ca-9749b039eedc",
+    "cfcbdff7-26b1-4ced-baff-d67383344b63",
+    "8d674e78-8ead-43f5-85b0-c24ffb8045c4",
+    "a6152fd5-4d80-45bf-88c2-58509ba7e739",
+    "0a9e5489-fffa-41f1-9113-8b738262bdd3",
+    "1ff2ab44-3a50-46e3-97ca-a89b719ddb23",
+    "a23695b1-a1c9-440a-ba4b-1d1ea6dd5d91",
+    "1ef80cf6-a04c-4926-b2e5-d6e84dc70ffc",
+    "411dc064-be68-463d-aece-bd577f3e96da",
+    "f4f69c04-1cf6-4fa2-b4db-2198ab9618cb",
+    "b932553f-12e8-4d62-8a9c-04427a8edf8c",
+    "8f8d9470-6fff-4918-b01c-afa94109907a",
+    "b659eb5c-94a4-4774-9ea5-2f920443745c",
+    "77450358-ec5d-42cd-979c-739a9d0ed907",
+    "e975da56-b48e-4b59-a2f1-300c2bacf65e",
+    "76583c7f-3c12-4ae4-bbf3-d94957694480",
+    "3f7c96c7-397c-41ba-93eb-dd81bafcb587",
+    "119a7d76-4d59-4004-9e43-05103d0d991d",
+    "1a4155f6-497d-4be3-8a0b-85b6f4ee9e4b",
+    "3b4c3246-f661-4b3e-9294-1b873c08b442",
+    "f8b4093c-ad29-4e94-b3ad-e1f6a13195cd",
+    "6150d229-a4af-4378-9ce9-8b049bda7ad0",
+    "2c7876a0-6f0d-4f31-a086-36cc90f6abd8",
+    "eb02fae4-1388-434a-a050-19701fe3dbf3",
+    "c3f044df-82e6-4bd8-8db5-4ce8bd35343b",
+    "4da97aef-8889-43d4-885f-183aa3ce4b39",
+    "ce1bc983-dfc3-4e6a-a62f-52b64cc5660c",
+    "891786ea-de3d-4684-82d4-51bf9143a444",
+    "eec9e470-085e-4f4b-a00c-8ed20da646c1",
+    "9f793ca3-9329-4f38-aea8-40d5b6f75bc1",
+    "f14fdd6a-3218-49e9-941a-cdc2ccc64293",
+    "7adb3bef-a14d-4a2b-95de-cb55d996d8f3",
+    "f1605f65-f7c4-45cb-acfb-2c5cef711e3a",
+    "294237c8-0d85-483f-a197-2a58a81e1ed3",
+    "8370575c-7ed8-4e2e-8ec1-9ed64e2b5f19",
+    "4f7bc5e6-8820-4bfe-9880-547c28d9613d",
+    "24988dbf-ed73-4a93-aedf-ee6081242e87",
+    "791308d7-ec83-438c-a7f9-4d7435273d52",
+    "d6b1deb2-d473-46c1-9482-5ec26350f92a",
+    "0ac609f9-3a87-41a7-b6ac-b371be7c3d15",
+    "988b2ba4-d5f1-46fa-b616-6a60787a7840",
+    "effc598e-6d9e-45a6-9ab4-e7c4116f0909",
+    "afa47d6a-d97c-40df-9f11-5352967ba990",
+    "4f3eae33-5b58-4fd6-93b3-b39988d662a0",
+    "e6e0336c-b00a-45fb-8cc9-af53a83c8ace",
+    "3439a0f3-6963-43cd-af0a-39be6e9b489e",
+    "06cae883-2b42-4fd5-9cc0-a3a00c1769d2",
+    "488b556f-0de8-4126-a81f-0c4bb5ca6739",
+    "a778aea3-84c7-4ce2-a564-c4a93e8a66fd",
+    "c51ff473-3756-4bb4-a30b-620b68df5a0f",
+    "1f4533d2-ba29-4ade-a60d-000ae39dda6b",
+    "1bf05d1a-0d32-4a18-844d-e3026fb00e27",
+    "53e638bf-16b0-42a3-bdac-130dba6846b4",
+    "3457b020-7ac8-4f93-96b1-664dd5490585",
+    "66a4f5ad-3c68-4d09-8a12-fedded95aae1",
+    "deb1383e-e701-42d8-99d0-11bd507d64ce",
+    "ee6b7b9b-823c-4540-9269-77d015bfca36",
+    "2f56d93e-ddf2-46ec-a8b9-75fe6dfc1856",
+    "efdcb3b8-04a1-4998-82b8-3228be0c4187",
+    "08f98577-1394-4c35-823d-f5c5e6329cd9",
+    "c30725af-341d-4591-959d-67db35a82161",
+    "2dcbad48-906a-4d46-9d22-c71120270f33",
+    "6150e476-b818-4d99-8ba3-4ef8e59a0060",
+    "9a904404-f2b0-4aaa-acd9-ea0ca2f70856",
+    "5104d96f-3ddd-42d3-9aed-fc2fd9be1ed5",
+    "c49ead91-13f9-401f-8816-ad1e4c5268c8",
+    "b78624fe-18f0-43c5-868c-eb73d0c9adda",
+    "1cece46b-7459-4afd-87aa-00f9ad5f2b90",
+    "8be64aaa-86a5-43b9-9314-e1e29cdc67da",
+    "df10cf41-7dfa-4e44-b94a-80a17874f446",
+    "854f3474-7c3d-461b-af3f-ddf8808935a8",
+    "02d46d03-6a35-4b47-befe-717c1bb42dfb",
+    "9522e529-bd13-4d60-b7d8-992040bbdb5c",
+    "194b81cf-feaa-4b28-b23d-3789183d5fc0",
+    "c4f10bbb-d676-45b5-bbd6-18ba9a43c67f",
+    "b9245e2f-b13e-4204-99c3-913caf37516a",
+    "d563a7bd-0fab-4530-99a2-0f636671666b",
+    "49213b55-7e1b-46e6-aac7-e6f39464d51d",
+    "71aa891a-f55a-4441-b168-e8b49bb8a40b",
+    "122329d2-c1a8-4046-b31d-a2149b4fd615",
+    "7f96fdd5-9517-4e15-8711-1c814b693466",
+    "baad9f70-3046-4fd5-b60e-1d177cf8d286",
+    "2ca5fcdc-d894-4262-900e-07d661768d31",
+    "272ebbc0-498f-4050-b2b1-512fae1ee84a",
+    "8875b7de-7653-4431-b27a-a3e9933fef17",
+    "3ef6eeb5-e8ec-4b08-afb1-cef7daec7c28",
+    "248cb044-cebf-4fbb-916e-4367f981c932",
+    "e7f59e1f-a9a6-4b28-8efe-49d2451653d4",
+    "c1052aa8-61b4-4689-bac9-a0f1918d7d05",
+    "83942b54-792e-4656-8e77-1fe8da0a346f",
+    "73d5527c-ab62-4934-b98b-d52466980568",
+    "83fda087-7c01-4d0d-8fe8-41e191cfd86a",
+    "e95184c4-bae0-4f23-b93f-205cb958ab24",
+    "8095cc05-6ca7-4792-937d-b2e71e1d720b",
+    "6b30cfae-a7aa-40ff-b058-638398959571",
+    "298c8019-b2de-42a2-b77b-9347bf16640a",
+    "c97d679e-88c9-45b1-b2a9-c77a57d71da2",
+    "01255b88-a94f-4f30-bb16-bc7e4680ced0",
+    "b0e5145b-d352-42a5-ae47-c96d5242232f",
+    "e09ad29f-7510-4764-91c2-74588aed2361",
+    "f498e8d5-fba0-4dfd-8325-c9bbd60ebded",
+    "bb633b46-0b40-42a1-991d-0988149da904",
+    "38acd453-899e-4363-bef3-0794c38393a4",
+    "ff29f4cc-ac7a-43e2-8e1e-4c69ef089867",
+    "9bd74f05-4788-4fc0-bfb0-b4d98ed5b9ae",
+    "04847a34-dd5e-4825-b6d9-1139d69eacb6",
+    "cd68b281-948a-446c-8940-3e4a0668654b",
+    "7ea58cac-486a-4735-a1e8-6a272dc21162",
+    "463384c0-b847-4bdd-bc5a-b013ffc804d4",
+    "83d2e4c6-6aaa-401b-ae0c-a384e4c0ed2b",
+    "8d395c54-ea5d-47d6-8a36-8f1b66d943e5",
+    "b3530719-fb37-4ac0-b004-18c8b9599f68",
+    "56bf8356-ebec-4308-b782-8dbada3ee5a7",
+    "da665d14-403d-42fc-b144-8fbf2ea4396e",
+    "3f07f3cc-7545-448c-8d3e-f6adcfa3279a",
+    "1b3949a4-ca76-4b53-a3dc-11e73b231cda",
+    "cadc0bff-46b0-43ed-bb75-3ecdf8d3b171",
+    "825f596a-f85f-4f27-ae64-b2d071d45da7",
+    "0ff0b242-91c8-4c69-a93d-3d0d8c91d2ee",
+    "d6f7a003-6579-40c3-99de-ecdcb801725b",
+    "1f89c0b6-f902-4f96-8ac7-f4881f061bc4",
+    "a4e69428-a76e-4210-9d42-46680b220408",
+    "d97e59b6-7457-49b2-836b-bd060822330e",
+    "343dbbef-eff0-46d7-9300-8d0dd06912d7",
+    "cda4dee8-ec0e-401e-8393-2ba58a3934da",
+    "4524e4fc-2911-431c-bff1-58cc558958dc",
+    "55068e0f-d55c-44fd-aa53-9ce88c7a33ce",
+    "8cb3bcd0-c534-42b9-8b73-47c3e7569400",
+    "ed31e2d6-6abd-4e10-a090-9d45b3d3e98f",
+    "b3e5a9d4-d878-4994-a5d9-163fdeb23474",
+    "6a8cd0b9-574f-431a-ad22-e567280ecccc",
+    "2238ccd5-ad74-4b33-a9bd-f8aef1d367d6",
+    "0bfaeee1-dee0-48eb-bf57-1b9e77905a59",
+    "b892a03a-063c-4f2d-937e-13bbb762d062",
+    "173d83b7-1d77-4094-afff-45bbe10e8dd5",
+    "897a453c-50ba-42c1-b58d-79cb0b3192e9",
+    "c9134875-7479-4104-9203-468e5b6c3d66",
+    "c33f6cfb-d18c-4f7b-b3ae-510e70964c28",
+    "92adbfc7-dda4-4c16-84d3-e28642fa6469",
+    "c5050fb5-de80-4c2f-b5d6-393a57330209",
+    "a0e890b6-efe4-4aca-9b9b-fe1a103a90b2",
+    "a7dbad5e-2b93-4e78-806a-41bf3ecf4ee2",
+    "5c4759ba-f75d-4c17-b937-49b81f090bcb",
+    "94cd6644-b481-4027-9216-e321f6a26c66",
+    "5a2f3004-1738-4923-a1d9-68cef9d9d8e3",
+    "c99060b3-1831-4dcc-9f9d-346fa71ee8ef",
+    "b79c6390-02c1-44f6-a0da-340951196700",
+    "f0e1fdfc-f79d-42f0-9f64-3f555ec310a5",
+    "08fdc87f-9b30-442f-902c-f0f5752dfb50",
+    "36e195de-9b66-4eda-84d8-55ec7d9dfb3b",
+    "10631d24-fb62-4f24-9993-255bcb2fe4f2",
+    "cc28b6c1-93ad-4de7-98ef-b76231196e1b",
+    "723a8838-7304-4e21-9bb8-28b08d02a0da",
+    "4ad8d1ca-2be2-4d4b-b34a-76c9b710a7c6",
+    "d246664b-39bf-4a57-b603-ab9abb6d5b11",
+    "bc1d4637-bf4b-45ab-864d-61cb40102149",
+    "5b444c9b-30a0-48ee-ae96-766347cf7e04",
+    "f69c18ab-49c9-4bbe-9197-ccc5fbed4dfb",
+    "a74b7f80-348b-4c0e-96c3-73eaf1548bd1",
+    "146df350-2ed8-4153-83fc-dc4e2509e95c",
+    "a1755cca-00ab-42e7-9a75-947e73932d01",
+    "7484ea1f-4185-4c1e-b2dc-a5568efed8a4",
+    "d5a9787a-4a0e-4e21-a157-ce22153547f8",
+    "3f7410bf-61ef-4fd4-b32e-81b0927d5b3b",
+    "a532ce86-8d6b-436d-ac50-03e19ae31adf",
+    "25df15c9-9c26-414d-8be5-3d6387a381fc",
+    "290425d5-5732-48e5-bf66-dc9e5b8c2a40",
+    "92b7b34e-f82a-497d-87bd-b22279cef796",
+    "312eba19-c958-4378-8865-f54f8baeba52",
+    "ae763936-0287-413b-8f8c-b8ae0b4b3c55",
+    "7e410bd0-ed1e-4824-8839-7ecc6e2c640c",
+    "326d3e2f-a441-44bf-b10d-7c6e98444beb",
+    "0875d19c-16ca-4be1-b8b7-f43bb773d8f4",
+    "8d756a98-d8aa-4768-8c92-d0b0925c6d55",
+    "6ebe6393-bea6-4d0d-92a0-3f4c4c331a06",
+    "01d6d2fd-9108-47cc-a44e-acba8503155c",
+    "d0613b0f-d8f6-4f3d-9804-e94a76a2c171",
+    "ad04b3f9-fd8f-416b-b5ab-e12d91288471",
+    "d0327d29-1f1b-4053-93b0-dc758b1a3f81",
+    "ffac7bc1-37f9-4238-a499-3fc2aa1e3ed1",
+    "121a3839-c057-4608-bb27-e37f3e318bda",
+    "45eb236d-5f3b-4c01-838c-0db989ff7178",
+    "361c40b6-d179-46df-884c-27ba7de3b978",
+    "c9cd6087-9ea1-4e92-b1d9-4106efbf5114",
+    "2cbec315-e636-44d6-ba95-29f32e061820",
+    "44898869-5cc9-4361-810f-37b8f422e81a",
+    "2afbbdf1-3462-4689-ab86-926185a310c1",
+    "8e78e380-57b2-4021-8a85-fffac319d1fd",
+    "ad49ba90-acdf-4b8b-bcc0-2545e6c0d8ca",
+    "456d41b9-5354-485c-9b27-eb457a6a4379",
+    "1d2fb72f-ca0a-4d79-b1e6-d69c023ab4b1"
+  ],
+  "achievements": {
+    "3a6306d6-a3e4-490c-b4d3-2d3b32e16ae5": {
+      "name": "Apartments",
+      "count": 11,
+      "total": 16,
+      "bonus": 5
+    },
+    "8fa2c9dc-d919-44ef-8b85-5d530e012b24": {
+      "name": "Business",
+      "count": 17,
+      "total": 22,
+      "bonus": 5
+    },
+    "565e8399-ebb9-4bb1-b0c1-8a566900f8fd": {
+      "name": "Farming",
+      "count": 93,
+      "total": 98,
+      "bonus": 5
+    },
+    "e63a2c03-e2e0-46d4-bd49-e969992fc706": {
+      "name": "Fishing",
+      "count": 24,
+      "total": 29,
+      "bonus": 5
+    },
+    "39b9fb2c-7fff-4c74-9dfd-4965724f2fc8": {
+      "name": "Graffiti",
+      "count": 28,
+      "total": 33,
+      "bonus": 5
+    },
+    "9be4afdc-1e91-421e-9f53-338902f0f2fb": {
+      "name": "Restaurant Menus",
+      "count": 27,
+      "total": 32,
+      "bonus": 5
+    },
+    "e03ccfa4-0897-4c65-ae32-a4338273fcbe": {
+      "name": "Postcards",
+      "count": 10,
+      "total": 15,
+      "bonus": 5
+    },
+    "33f189fc-62ef-430c-a2be-9e8b197234e0": {
+      "name": "Quests",
+      "count": 113,
+      "total": 123,
+      "bonus": 10
+    },
+    "cedf09fb-5d94-45f5-99be-b5c2e13fcb2a": {
+      "name": "Vendors",
+      "count": 141,
+      "total": 151,
+      "bonus": 10
+    },
+    "8ebc153a-08a0-4985-8535-bf06dd293e69": {
+      "name": "Visited Locations",
+      "count": 18,
+      "total": 23,
+      "bonus": 5
+    },
+    "05db8b1d-c0cf-49f6-a700-c90f33bd2d2c": {
+      "name": "Tried restaurants",
+      "count": 83,
+      "total": 88,
+      "bonus": 5
+    }
+  }
+}

@@ -38,7 +38,7 @@ test('achievement edits update total points and reject inconsistent flags and ov
   const writes = achievementWrites(section, { [guid]: { flags: [true, true], completed: 2, earned: 2 } });
   assert.ok(writes.some(([p, v]) => p === section.pointsOffset && v === 2));
   for (const edit of [{ flags: [true], completed: 1 }, { flags: [true, true], completed: 1 },
-    { completed: 2 }, { earned: -1 }, { earned: 1.5 }, { earned: 2147483648 }, { isCompleted: true }]) {
+    { completed: 2 }, { earned: -1 }, { earned: 1.5 }, { earned: 2147483648 }, { isCompleted: 'true' }]) {
     assert.throws(() => achievementWrites(section, { [guid]: edit }), UnsupportedEditError);
   }
   assert.throws(() => achievementWrites(null, { [guid]: {} }), UnsupportedEditError);

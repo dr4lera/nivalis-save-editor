@@ -7,6 +7,7 @@ import {
   ACHIEVEMENT_NAMES, storyCompletionEdits, storyChoiceConflicts, STORY_CHOICE_GROUPS,
 } from '../core/index.js';
 import { areaName } from './areas.js';
+import progressCatalog from './data/progression.json';
 import {
   itemInfo, itemName, ITEM_CHOICES, venueInfo, venueIdByInternal, venueName, vendorName, skillInfo, skillName, prettify,
 } from './catalog.js';
@@ -90,11 +91,12 @@ function toast(text, kind = 'ok') {
 
 function pendingCount() {
   return (state.edits.moneyCents !== undefined ? 1 : 0) + state.edits.variables.size + state.edits.inventory.size
-    + state.edits.skills.size + state.edits.venues.size + state.edits.achievements.size;
+    + state.edits.skills.size + state.edits.venues.size + state.edits.achievements.size
+    + (state.edits.completeQuests ? 1 : 0) + (state.edits.unlockRecipes ? 1 : 0) + (state.edits.unlockProperties ? 1 : 0);
 }
 
 function resetEdits() {
-  state.edits = { moneyCents: undefined, variables: new Map(), inventory: new Map(), skills: new Map(), venues: new Map(), achievements: new Map() };
+  state.edits = { moneyCents: undefined, variables: new Map(), inventory: new Map(), skills: new Map(), venues: new Map(), achievements: new Map(), completeQuests: null, unlockRecipes: null, unlockProperties: null };
   state.storyBatch = null;
 }
 resetEdits();
@@ -418,6 +420,7 @@ function overviewHtml() {
     </section>
     ${financesHtml()}
     ${skillsHtml()}
+    ${progressionHtml()}
     <section class="card muted-card">
       <h2>In-game time</h2>
       <p class="hint">Read-only. The clock is stamped into hundreds of world records (schedules, events), so changing it in one place would desync the world.</p>
@@ -459,14 +462,17 @@ function variablesShellHtml() {
 async function stageStoryToggles() {
   const edits = storyCompletionEdits(state.current.vars);
   const changes = Object.entries(edits).filter(([name, value]) => currentValue(state.current.varIndex.get(name)) !== value);
-  if (!changes.length) { toast('All matching toggles are already enabled.'); return; }
-  const warning = 'Applies reviewed completion flags and selects exactly one outcome in each supported choice group, clearing its alternatives. Success wins over failure; other groups use the defaults listed below. Numeric quest steps and unsupported branches are unchanged. This does not run quests, and full in-game story completion has not been verified.';
+  const questCount = progressCatalog.quests.length;
+  const warning = `Completes all ${questCount} catalogued journal quests and removes their active objectives, including quests not started yet. Applies completion flags and selects one outcome per supported choice group, clearing alternatives. Success wins over failure. Quest rewards and scripted scene events are not replayed.`;
   const choices = STORY_CHOICE_GROUPS.filter((g) => g.choices.every((name) => name in edits)).map((g) => g.name).join('\n');
   const preview = changes.slice(0, 12).map(([name, value]) => `${name} → ${value}`).join('\n');
   if (!(await ask(`${warning}\n\nChosen outcomes:\n${choices}\n\nStage ${changes.length} changes across all groups, regardless of search filters?\n\n${preview}${changes.length > 12 ? '\n…' : ''}\n\nYou can review, undo or discard them before saving.`, { title: 'Finish all story', kind: 'warning' }))) return;
   state.storyBatch = changes.map(([name, after]) => ({ name, before: currentValue(state.current.varIndex.get(name)), after }));
+  state.storyBatch.questBefore = state.edits.completeQuests;
+  state.edits.completeQuests = progressCatalog.quests.map((q) => q.guid);
   for (const [name, value] of changes) setVariableEdit(name, value, { fromBatch: true });
   renderTab();
+  renderPending();
   toast(`${changes.length} story toggles staged. Review them with Changed only before saving.`);
 }
 
@@ -498,6 +504,7 @@ function setAchievementEdit(guid, edit) {
 function achievementsShellHtml() {
   if (!state.current.save.achievements) return '<div class="card"><h2>Achievements unavailable</h2><p class="hint">This save does not contain a supported achievement section.</p></div>';
   return `<div class="toolbar"><input id="achievement-search" type="search" placeholder="Search achievement series…" value="${escapeHtml(state.achievementSearch)}"><span id="achievement-count" class="subtle"></span>
+    <button class="btn btn-primary" id="achievement-complete-all">Complete all achievements</button>
     <button class="btn" id="achievement-business-complete">Complete all business entries</button>
     <button class="btn btn-ghost" id="achievement-reset">Revert all achievement edits</button></div>
     <p class="hint">Saved achievement progress. Counters do not discover collectibles or finish quests, and Steam unlocks are not guaranteed. Individual entry toggles are available where the save stores them. The saved series completion state is preserved.</p>
@@ -531,6 +538,54 @@ async function completeBusinessEntries() {
   if (!(await ask(`Stage all ${missing} remaining business entries as complete?\n\nThis updates their saved flags, count and points. It does not grant venues, repay debts or guarantee Steam unlocks. Review or revert the changes before saving.`, { title: 'Complete business entries', kind: 'warning' }))) return;
   setAchievementEdit(entry.guid, { flags: Array(BUSINESS_ENTRIES.length).fill(true), completed: BUSINESS_ENTRIES.length, earned: value.earned + missing });
   renderAchievementRows();
+}
+
+function stageAllAchievements() {
+  for (const entry of state.current.save.achievements?.entries ?? []) {
+    const spec = progressCatalog.achievements[entry.guid];
+    if (!spec) continue;
+    const edit = { completed: spec.count, earned: spec.total, isCompleted: true };
+    if (entry.flags.length) { edit.flags = entry.flags.map(() => true); edit.completed = entry.flags.length; }
+    setAchievementEdit(entry.guid, edit);
+  }
+}
+
+function progressionHtml() {
+  const p = state.current.save.progression;
+  return `<section class="card"><h2>Completion tools</h2><div class="toolbar">
+    <button class="btn btn-primary" id="complete-save">100% save preset</button>
+    <button class="btn" id="recipes-unlock-all">Unlock all recipes</button>
+    <button class="btn btn-ghost" id="progression-reset">Revert progression edits</button></div>
+    <p class="hint">${state.edits.completeQuests ? 0 : p.quests?.active.length ?? 0} active journal quests · ${state.edits.unlockRecipes ? progressCatalog.recipes.length : p.recipes?.guids.length ?? 0}/${progressCatalog.recipes.length} recipes. The preset completes journal quests, achievement progress, started skills, recipes and purchasable venues. Scripted quest rewards and scenes are not replayed.</p></section>`;
+}
+
+function stageVenueUnlocks() {
+  const targets = venueList().filter((v) => v.id && venueStats(v.id));
+  state.edits.unlockProperties = targets.map((v) => v.id);
+  for (const venue of targets) setVariableEdit(`${venue.group}.Owned`, true);
+  return targets;
+}
+
+function stageVenueMaximum(targets = venueList().filter((v) => v.owned)) {
+  for (const venue of targets) {
+    const stats = venue.id && venueStats(venue.id); if (!stats) continue;
+    setVenueEdit(venue.id, 'level', VENUE_MAX_LEVEL);
+    setVenueEdit(venue.id, 'mealsServed', Math.max(stats.mealsServed, 10000));
+    if (stats.reviews.length) setVenueEdit(venue.id, 'reviewScore', REVIEW_MAX_SCORE);
+  }
+}
+
+async function completeSavePreset() {
+  if (!(await ask(`Stage the 100% save preset?\n\nCompletes ${progressCatalog.quests.length} journal quests, all supported achievement series, ${progressCatalog.recipes.length} recipes, started skills and all purchasable venues. Chooses one outcome in each supported story choice group. Quest reward scripts and cutscenes are not replayed.\n\nAll changes can be discarded before saving; the current file will be backed up.`, { title: '100% save preset', kind: 'warning' }))) return;
+  for (const [name, value] of Object.entries(storyCompletionEdits(state.current.vars))) setVariableEdit(name, value);
+  state.edits.completeQuests = progressCatalog.quests.map((q) => q.guid);
+  state.edits.unlockRecipes = progressCatalog.recipes;
+  stageAllAchievements();
+  stageVenueMaximum(stageVenueUnlocks());
+  for (const e of state.current.save.skills.entries) {
+    const info = skillInfo(e.guid); if (info?.steps?.length) state.edits.skills.set(e.guid, { level: info.steps.length - 1, xp: xpForLevel(info.steps, info.steps.length - 1) });
+  }
+  renderPending(); renderTab();
 }
 
 function valueEditorHtml(v) {
@@ -762,10 +817,12 @@ function venuesHtml() {
     </section>`).join('');
   return `
     <div class="toolbar">
+      <button class="btn" id="venues-unlock-all">Unlock all venues</button>
+      <button class="btn" id="venues-max-all">Max all owned venues</button>
       <label class="check"><input id="venues-owned" type="checkbox" ${f.ownedOnly ? 'checked' : ''}> Owned only</label>
       <span class="subtle">${venues.length} venue${venues.length === 1 ? '' : 's'}</span>
     </div>
-    <p class="hint">Level and customers served can be edited. The review score is the average of the venue’s reviews, so it changes by giving every review the same number of stars; the number of reviews can’t be changed. The game also checks the level against customers served and the review score, so raise those along with the level. Seats, staff, menu and storage are shown for information: the game recalculates them from your venue. Ownership can’t be changed here yet, because it is also stored in other parts of the save.</p>
+    <p class="hint">Unlock grants the purchasable venues in this save and synchronizes ownership flags. Max sets owned venues to level 5, at least 10,000 customers and five stars on existing reviews. Venues without reviews need customers to leave reviews in-game. Seats, staff, menu and storage are calculated by the game.</p>
     ${cards || '<p class="hint">No venues match.</p>'}`;
 }
 
@@ -1081,6 +1138,9 @@ async function saveChanges() {
       skills: Object.fromEntries(state.edits.skills),
       venues: Object.fromEntries(state.edits.venues),
       achievements: Object.fromEntries(state.edits.achievements),
+      completeQuests: state.edits.completeQuests,
+      unlockRecipes: state.edits.unlockRecipes,
+      unlockProperties: state.edits.unlockProperties,
     });
   } catch (e) {
     await message(e.message, { title: 'Cannot apply changes', kind: 'error' });
@@ -1108,11 +1168,20 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.path) await selectSave(t.dataset.path);
   else if (t.dataset.tab) { state.tab = t.dataset.tab; renderMain(); }
   else if (t.id === 'story-finish-all') await stageStoryToggles();
+  else if (t.id === 'complete-save') await completeSavePreset();
+  else if (t.id === 'recipes-unlock-all') { state.edits.unlockRecipes = progressCatalog.recipes; renderPending(); renderTab(); }
+  else if (t.id === 'progression-reset') { state.edits.completeQuests = null; state.edits.unlockRecipes = null; state.edits.unlockProperties = null; renderPending(); renderTab(); }
+  else if (t.id === 'venues-unlock-all') {
+    if (await ask('Grant all purchasable venues in this save? Ownership records and matching story flags will be staged together.', { title: 'Unlock venues', kind: 'warning' })) { stageVenueUnlocks(); renderPending(); renderTab(); }
+  }
+  else if (t.id === 'venues-max-all') { stageVenueMaximum(); renderPending(); renderTab(); }
+  else if (t.id === 'achievement-complete-all') { stageAllAchievements(); renderAchievementRows(); }
   else if (t.id === 'achievement-business-complete') await completeBusinessEntries();
   else if (t.id === 'achievement-reset') { state.edits.achievements.clear(); renderPending(); renderAchievementRows(); }
   else if (t.id === 'skills-max') await maxStartedSkills();
   else if (t.id === 'skills-reset') { state.edits.skills.clear(); renderPending(); renderTab(); }
   else if (t.id === 'story-undo') {
+    state.edits.completeQuests = state.storyBatch?.questBefore ?? null;
     for (const { name, before, after } of state.storyBatch ?? []) {
       // Keep any manual edits made after the batch.
       if (currentValue(state.current.varIndex.get(name)) === after) setVariableEdit(name, before);

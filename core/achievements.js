@@ -62,7 +62,11 @@ export function achievementWrites(section, edits) {
     const entry = section.entries.find((e) => e.guid === guid);
     if (!entry) throw new UnsupportedEditError(`Unknown achievement series ${guid}`);
     for (const field of Object.keys(edit)) {
-      if (!['completed', 'earned', 'flags'].includes(field)) throw new UnsupportedEditError(`Unsupported achievement field ${field}`);
+      if (!['completed', 'earned', 'flags', 'isCompleted'].includes(field)) throw new UnsupportedEditError(`Unsupported achievement field ${field}`);
+    }
+    if (edit.isCompleted !== undefined) {
+      if (typeof edit.isCompleted !== 'boolean') throw new UnsupportedEditError('Series completion must be boolean');
+      writes.push([entry.isCompletedOffset, Number(edit.isCompleted), 1]);
     }
     for (const field of ['completed', 'earned']) {
       if (edit[field] === undefined) continue;
