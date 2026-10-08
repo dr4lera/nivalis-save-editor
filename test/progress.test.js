@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseAchievements, encodeAchievements, achievementWrites, achievementSnapshot,
-  storyToggleEdits, parseSave, applyEdits, diffSaves, roundTripCheck, listVariables, SaveFormatError, UnsupportedEditError } from '../core/index.js';
+  storyCompletionEdits, storyChoiceConflicts, STORY_CHOICE_GROUPS, parseSave, applyEdits, diffSaves, roundTripCheck, listVariables, SaveFormatError, UnsupportedEditError } from '../core/index.js';
 import { encodeString } from '../core/binary.js';
 
 const guid = '8fa2c9dc-d919-44ef-8b85-5d530e012b24';
@@ -45,17 +45,24 @@ test('achievement edits update total points and reject inconsistent flags and ov
   assert.throws(() => achievementWrites(section, { unknown: {} }), UnsupportedEditError);
 });
 
-test('story completion only targets completion booleans; broad action includes every toggle', () => {
+test('story completion sets reviewed flags, selects one outcome and ignores unknown branches', () => {
   const vars = [
-    { name: 'A.QuestComplete', kind: 'bool', value: false },
-    { name: 'B.Intro_Completed', kind: 'bool', value: true },
-    { name: 'C.QuestFailed', kind: 'bool', value: false },
-    { name: 'D.QuestStarted', kind: 'bool', value: false },
-    { name: 'E.QuestFinished', kind: 'int', value: 1 },
-    { name: 'F.Finished', kind: 'string', value: '' },
+    { name: 'MaGomba.PoisonQuestComplete', kind: 'bool', value: false },
+    { name: 'MaGomba.PoisonQuestFailed', kind: 'bool', value: true },
+    { name: 'Unknown.GoodEndingComplete', kind: 'bool', value: false },
+    { name: 'Unknown.BadEndingComplete', kind: 'bool', value: true },
+    { name: 'MiaJay.QuestComplete', kind: 'int', value: 1 },
+    { name: 'JohnDoe.QuestComplete', kind: 'string', value: '' },
   ];
-  assert.deepEqual(storyToggleEdits(vars, { completionOnly: true }), { 'A.QuestComplete': true, 'B.Intro_Completed': true });
-  assert.deepEqual(storyToggleEdits(vars), { 'A.QuestComplete': true, 'B.Intro_Completed': true, 'C.QuestFailed': true, 'D.QuestStarted': true });
+  assert.deepEqual(storyCompletionEdits(vars), { 'MaGomba.PoisonQuestComplete': true, 'MaGomba.PoisonQuestFailed': false });
+  const allChoices = STORY_CHOICE_GROUPS.flatMap((g) => g.choices.map((name) => ({ name, kind: 'bool', value: true })));
+  assert.equal(storyChoiceConflicts(allChoices).length, STORY_CHOICE_GROUPS.length);
+  const edits = storyCompletionEdits(allChoices);
+  const after = allChoices.map((v) => ({ ...v, value: edits[v.name] }));
+  assert.deepEqual(storyChoiceConflicts(after), []);
+  for (const group of STORY_CHOICE_GROUPS) assert.equal(group.choices.filter((name) => edits[name] === true).length, 1);
+  const partial = allChoices.filter((v) => v.name !== 'BenQuestVariables.ReehanFleshyKind');
+  assert.equal(Object.hasOwn(storyCompletionEdits(partial), 'BenQuestVariables.ReehanNeuralKind'), false);
 });
 
 const dir = process.env.NN_SAVE_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -65,6 +72,9 @@ for (const file of files) {
     const source = readFileSync(join(dir, file));
     const save = parseSave(source);
     assert.ok(save.achievements);
+    assert.throws(() => applyEdits(save, { variables: {
+      'MaGomba.PoisonQuestComplete': true, 'MaGomba.PoisonQuestFailed': true,
+    } }), UnsupportedEditError);
     const entry = save.achievements.entries.find((e) => !e.flags.length);
     const business = save.achievements.entries.find((e) => e.flags.length);
     const flags = business.flags.map(Boolean);
@@ -75,12 +85,13 @@ for (const file of files) {
     items.push(structuredClone(items[0]));
     const edits = { achievements: { [entry.guid]: { completed: entry.completed + 1, earned: entry.earned + 1 },
       [business.guid]: { flags, completed: flags.filter(Boolean).length, earned: business.earned + (flags[0] ? 1 : -1) } },
-      variables: storyToggleEdits(listVariables(save)), inventory: { [key]: items } };
+      variables: storyCompletionEdits(listVariables(save)), inventory: { [key]: items } };
     const bytes = applyEdits(save, edits);
     const after = parseSave(bytes);
     assert.deepEqual(roundTripCheck(after), []);
     assert.equal(after.tablesConsistent, true);
-    assert.ok(after.tables[0].entries.filter((v) => v.kind === 'bool').every((v) => v.value));
+    assert.deepEqual(storyChoiceConflicts(listVariables(after)), []);
+    for (const v of listVariables(after)) assert.equal(v.value, Object.hasOwn(edits.variables, v.name) ? edits.variables[v.name] : listVariables(save).find((before) => before.name === v.name).value);
     assert.equal(after.achievements.entries.find((e) => e.guid === entry.guid).completed, entry.completed + 1);
     assert.equal(diffSaves(save, after).achievements.length, 2);
     assert.deepEqual(source, readFileSync(join(dir, file)));

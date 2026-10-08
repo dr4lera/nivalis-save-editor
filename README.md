@@ -6,7 +6,8 @@ A small desktop editor for **Nivalis Nights** save files (`.sav`), built with Ta
 - Edit **money**
 - **Skills**: set the level of each skill you have started (Barter, Boat, Cooking, Farming, Fishing, Serving, Managing)
 - Browse, search and edit the game's **1,800+ story variables** (flags and numbers: relationships, venue levels, quest steps, …)
-- **Story bulk actions**: finish explicit completion flags, or enable every boolean story toggle, with a change preview and undo before saving. The broad action includes failure flags and conflicting choices; neither action runs quests or guarantees a finished story.
+- **Finish all story**: one button applies reviewed completion flags and picks one outcome per supported choice group, clearing competing alternatives. Success wins over known failures; coffee choices use option 1, Reehan uses the fleshy route, and Ashwin uses Bonaventure. Preview and undo are available before saving. Numeric quest endpoints and unsupported branches are not guessed; full in-game completion has not been verified.
+- **Bulk completion tools**: complete all 17 saved business achievement entries, or max all started skills using their catalog XP thresholds; both are staged, reviewable and revertible before saving.
 - **Achievements**: browse and search 11 named achievement series, edit saved counters and points, and toggle the 17 individually stored business entries. Edits use the normal verified save and backup workflow, update total saved points and appear in comparisons. Steam unlocks and in-game completion have not been verified.
 - **Inventory**: view and edit the items in your inventory, your venues' storage, fridges and furniture, and vendor stock; add any of 1,300+ items, change quantities and freshness
 - **Compare** two saves to see which variables a quest step changed, and copy values across
@@ -59,9 +60,7 @@ npm run cli -- achievements <save.sav>
 npm run cli -- venues <save.sav>
 npm run cli -- edit  <save.sav> --money 2500.00 --set GameState.Debt=0 --skill Boat=3 -o out.sav
 npm run cli -- edit  <save.sav> --venue Venue_NoodleBar.level=5 --venue Venue_NoodleBar.served=600 --venue Venue_NoodleBar.stars=5 -o out.sav
-npm run cli -- edit  <save.sav> --finish-story-flags -o out.sav
-# Advanced: enables every boolean, including failures and conflicting choices
-npm run cli -- edit  <save.sav> --enable-story-toggles -o out.sav
+npm run cli -- edit  <save.sav> --finish-story -o out.sav
 ```
 
 ## Layout
@@ -123,7 +122,7 @@ Freshness is counted in 8-hour units and drops at 00:00, 08:00 and 16:00; 0 mean
 
 **Achievements** (`03H1F65F-148C-9E66-GHQE-4109P1286Q17`). Structural round-trips and edits verified against two local version **159** saves; the existing untested-version warning remains because no in-game loading was tested. Layout: `int32 totalPoints, int32 seriesCount`, then per series `string guid, int32 completedEntriesCount, int32 points, byte isCompleted, int32 singularEntryCount, byte[] singularEntriesSave`. Field names were checked in the installed game's IL2CPP metadata; series names and business entry ordering were checked against its asset definitions. The earlier `55F0A877-…` section contains GUID/boolean records and is left untouched. Counter edits retain the saved series completion byte. No records are inserted or resized; missing sections show an unavailable message, malformed sections refuse editing. Total points change by the delta in edited series points.
 
-**Bulk story actions.** “Finish completion flags” selects boolean names ending in Complete, Completed, Finished or Done (optionally followed by digits). “Enable all story toggles” selects all booleans. Both operate across all groups regardless of the current search filters, stage edits to both variable tables, preserve numbers/text, and require the normal backed-up save action. Undo restores the prior staged values while preserving subsequent manual changes. There is no universal quest-completion recipe: quest steps, relationships, world entities and mutually exclusive outcomes cannot be inferred from toggles alone.
+**Story completion preset.** `core/story.js` defines an explicit list of reviewed completion flags and eight supported choice groups. “Finish all story” sets those flags and chooses a single default in each fully present group, setting every competing option to false. It operates across all groups regardless of search filters, stages edits to both variable tables, preserves numbers/text, and requires the normal backed-up save action. The UI and CLI reject competing options within these groups when saving story edits. Undo restores the prior staged values while preserving subsequent manual changes, including failure flags cleared by the preset. The preset does not infer numeric quest endpoints or unsupported branches. There is no proven universal quest-completion recipe; seamless in-game story completion and Steam unlocks remain unverified.
 
 **Venues** (`VenueAreaGhost`, one Ghost block per venue). The level, customers served and reviews live here; the `Venue_<name>.Level`, `.CustomersServed`, `.ReviewScore` and `.ReviewAmount` story variables are copies the game rewrites from this record when a save loads (it only does so for some venues, so the copies of NPC-run venues can be stale). Editing only the variables therefore has no effect in the game. The record is the block that contains the venue's GUID and has this shape:
 

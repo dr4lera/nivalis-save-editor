@@ -4,7 +4,7 @@ import { open, ask, message } from '@tauri-apps/plugin-dialog';
 import {
   parseSave, summarize, listVariables, diffSaves, applyEdits, formatCredits, currentGameDay, xpForLevel, INT32_MAX, TESTED_VERSIONS,
   findVenue, averageReviewScore, VENUE_MAX_LEVEL, REVIEW_MAX_SCORE,
-  ACHIEVEMENT_NAMES, storyToggleEdits,
+  ACHIEVEMENT_NAMES, storyCompletionEdits, storyChoiceConflicts, STORY_CHOICE_GROUPS,
 } from '../core/index.js';
 import { areaName } from './areas.js';
 import {
@@ -432,8 +432,7 @@ function variablesShellHtml() {
     .map(([g, n]) => `<option value="${escapeHtml(g)}" ${f.group === g ? 'selected' : ''}>${escapeHtml(g || '(no group)')} (${n})</option>`).join('');
   return `
     <div class="toolbar">
-      <button class="btn" id="story-finish" ${state.current.save.tablesConsistent ? '' : 'disabled'}>Finish completion flags</button>
-      <button class="btn" id="story-enable-all" ${state.current.save.tablesConsistent ? '' : 'disabled'}>Enable all story toggles</button>
+      <button class="btn btn-primary" id="story-finish-all" ${state.current.save.tablesConsistent ? '' : 'disabled'}>Finish all story</button>
       <button class="btn btn-ghost" id="story-undo" ${state.storyBatch ? '' : 'disabled'}>Undo last bulk action</button>
     </div>
     <div class="toolbar">
@@ -457,16 +456,15 @@ function variablesShellHtml() {
     </div>`;
 }
 
-async function stageStoryToggles(completionOnly) {
-  const edits = storyToggleEdits(state.current.vars, { completionOnly });
+async function stageStoryToggles() {
+  const edits = storyCompletionEdits(state.current.vars);
   const changes = Object.entries(edits).filter(([name, value]) => currentValue(state.current.varIndex.get(name)) !== value);
   if (!changes.length) { toast('All matching toggles are already enabled.'); return; }
-  const warning = completionOnly
-    ? 'Sets boolean variables ending in Complete, Completed, Finished or Done to true. This does not run quests or set numeric quest steps.'
-    : 'Sets EVERY boolean story variable to true, including failure flags, mutually exclusive choices and world state. This can break quests and is not a guaranteed completed story.';
-  const preview = changes.slice(0, 12).map(([name]) => name).join('\n');
-  if (!(await ask(`${warning}\n\nStage ${changes.length} changes across all groups, regardless of search filters?\n\n${preview}${changes.length > 12 ? '\n…' : ''}\n\nYou can review, undo or discard them before saving.`, { title: completionOnly ? 'Finish completion flags' : 'Enable all story toggles', kind: 'warning' }))) return;
-  state.storyBatch = changes.map(([name]) => ({ name, before: currentValue(state.current.varIndex.get(name)) }));
+  const warning = 'Applies reviewed completion flags and selects exactly one outcome in each supported choice group, clearing its alternatives. Success wins over failure; other groups use the defaults listed below. Numeric quest steps and unsupported branches are unchanged. This does not run quests, and full in-game story completion has not been verified.';
+  const choices = STORY_CHOICE_GROUPS.filter((g) => g.choices.every((name) => name in edits)).map((g) => g.name).join('\n');
+  const preview = changes.slice(0, 12).map(([name, value]) => `${name} → ${value}`).join('\n');
+  if (!(await ask(`${warning}\n\nChosen outcomes:\n${choices}\n\nStage ${changes.length} changes across all groups, regardless of search filters?\n\n${preview}${changes.length > 12 ? '\n…' : ''}\n\nYou can review, undo or discard them before saving.`, { title: 'Finish all story', kind: 'warning' }))) return;
+  state.storyBatch = changes.map(([name, after]) => ({ name, before: currentValue(state.current.varIndex.get(name)), after }));
   for (const [name, value] of changes) setVariableEdit(name, value, { fromBatch: true });
   renderTab();
   toast(`${changes.length} story toggles staged. Review them with Changed only before saving.`);
@@ -499,7 +497,9 @@ function setAchievementEdit(guid, edit) {
 
 function achievementsShellHtml() {
   if (!state.current.save.achievements) return '<div class="card"><h2>Achievements unavailable</h2><p class="hint">This save does not contain a supported achievement section.</p></div>';
-  return `<div class="toolbar"><input id="achievement-search" type="search" placeholder="Search achievement series…" value="${escapeHtml(state.achievementSearch)}"><span id="achievement-count" class="subtle"></span></div>
+  return `<div class="toolbar"><input id="achievement-search" type="search" placeholder="Search achievement series…" value="${escapeHtml(state.achievementSearch)}"><span id="achievement-count" class="subtle"></span>
+    <button class="btn" id="achievement-business-complete">Complete all business entries</button>
+    <button class="btn btn-ghost" id="achievement-reset">Revert all achievement edits</button></div>
     <p class="hint">Saved achievement progress. Counters do not discover collectibles or finish quests, and Steam unlocks are not guaranteed. Individual entry toggles are available where the save stores them. The saved series completion state is preserved.</p>
     <div id="achievement-rows" class="achievement-grid"></div>`;
 }
@@ -520,6 +520,17 @@ function renderAchievementRows() {
       ${entry.flags.length ? `<details data-achievement-details="${entry.guid}" ${expanded.has(entry.guid) ? 'open' : ''}><summary>Individual entries (${value.completed}/${entry.flags.length})</summary>${value.flags.map((flag, i) => `<label class="check achievement-entry"><input type="checkbox" data-achievement="${entry.guid}" data-achievement-entry="${i}" ${flag ? 'checked' : ''}>${escapeHtml(achievementName(entry.guid) === 'Business' && entry.flags.length === BUSINESS_ENTRIES.length ? BUSINESS_ENTRIES[i] : `Entry ${i + 1}`)}</label>`).join('')}</details>` : '<p class="hint">This series stores counters rather than individual entry flags.</p>'}
       ${modified ? `<button class="link" data-achievement-revert="${entry.guid}">Revert series</button>` : ''}</div>`;
   }).join('') || '<p class="hint">No achievements match.</p>';
+}
+
+async function completeBusinessEntries() {
+  const entry = state.current.save.achievements?.entries.find((e) => e.guid === '8fa2c9dc-d919-44ef-8b85-5d530e012b24');
+  if (!entry || entry.flags.length !== BUSINESS_ENTRIES.length) { toast('This save does not contain the supported 17 business entries.', 'error'); return; }
+  const value = achievementValues(entry);
+  const missing = value.flags.filter((v) => !v).length;
+  if (!missing) { toast('All business entries are already complete.'); return; }
+  if (!(await ask(`Stage all ${missing} remaining business entries as complete?\n\nThis updates their saved flags, count and points. It does not grant venues, repay debts or guarantee Steam unlocks. Review or revert the changes before saving.`, { title: 'Complete business entries', kind: 'warning' }))) return;
+  setAchievementEdit(entry.guid, { flags: Array(BUSINESS_ENTRIES.length).fill(true), completed: BUSINESS_ENTRIES.length, earned: value.earned + missing });
+  renderAchievementRows();
 }
 
 function valueEditorHtml(v) {
@@ -797,6 +808,7 @@ function skillsHtml() {
   return `
     <section class="card">
       <h2>Skills</h2>
+      <div class="toolbar"><button class="btn" id="skills-max">Max all started skills</button><button class="btn btn-ghost" id="skills-reset">Revert all skill edits</button></div>
       <div class="venue-grid">${fields}</div>
       <p class="hint">Choosing a level sets the skill’s XP to the start of that level. A skill appears here once you have gained XP in it in the game.</p>
     </section>`;
@@ -808,6 +820,19 @@ function setSkillLevel(guid, level) {
   else state.edits.skills.set(guid, { xp: xpForLevel(skillInfo(guid).steps, level), level });
   renderPending();
   renderTab();
+}
+
+async function maxStartedSkills() {
+  const skills = state.current.save.skills.entries.filter((e) => skillInfo(e.guid)?.steps?.length
+    && (state.edits.skills.get(e.guid)?.level ?? e.level) < skillInfo(e.guid).steps.length - 1);
+  if (!skills.length) { toast('All supported started skills are already at their maximum level.'); return; }
+  if (!(await ask(`Stage the maximum level for ${skills.length} started skills?\n\n${skills.map((e) => `${skillName(e.guid)}: level ${skillInfo(e.guid).steps.length}`).join('\n')}\n\nXP is set from the skill catalog. Skills you have not started stay unavailable.`, { title: 'Max started skills', kind: 'info' }))) return;
+  for (const e of skills) {
+    const info = skillInfo(e.guid);
+    const level = info.steps.length - 1;
+    state.edits.skills.set(e.guid, { xp: xpForLevel(info.steps, level), level });
+  }
+  renderPending(); renderTab();
 }
 
 // ---------- diffs (shared by Compare and Backups) ----------
@@ -1042,6 +1067,11 @@ async function saveChanges() {
   const { entry, save } = state.current;
   const runningWarning = await gameRunningWarning(entry, 'The game keeps overwriting the autosave, so your changes would be lost.');
   if (runningWarning === null) return;
+  const conflicts = storyChoiceConflicts(state.current.vars.map((v) => ({ ...v, value: currentValue(v) })));
+  if (conflicts.length && state.edits.variables.size) {
+    await message(`These story choices have more than one outcome enabled:\n\n${conflicts.join('\n')}\n\nUse Finish all story to select one outcome, or disable the extra choices before saving.`, { title: 'Conflicting story choices', kind: 'error' });
+    return;
+  }
   let bytes;
   try {
     bytes = applyEdits(save, {
@@ -1077,12 +1107,15 @@ document.addEventListener('click', async (e) => {
   if (!t) return;
   if (t.dataset.path) await selectSave(t.dataset.path);
   else if (t.dataset.tab) { state.tab = t.dataset.tab; renderMain(); }
-  else if (t.id === 'story-finish') await stageStoryToggles(true);
-  else if (t.id === 'story-enable-all') await stageStoryToggles(false);
+  else if (t.id === 'story-finish-all') await stageStoryToggles();
+  else if (t.id === 'achievement-business-complete') await completeBusinessEntries();
+  else if (t.id === 'achievement-reset') { state.edits.achievements.clear(); renderPending(); renderAchievementRows(); }
+  else if (t.id === 'skills-max') await maxStartedSkills();
+  else if (t.id === 'skills-reset') { state.edits.skills.clear(); renderPending(); renderTab(); }
   else if (t.id === 'story-undo') {
-    for (const { name, before } of state.storyBatch ?? []) {
+    for (const { name, before, after } of state.storyBatch ?? []) {
       // Keep any manual edits made after the batch.
-      if (currentValue(state.current.varIndex.get(name)) === true) setVariableEdit(name, before);
+      if (currentValue(state.current.varIndex.get(name)) === after) setVariableEdit(name, before);
     }
     state.storyBatch = null; renderTab();
   }

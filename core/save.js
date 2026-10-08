@@ -22,6 +22,7 @@ import { parseInventory, encodeInventoryBody, validateInventoryItems } from './i
 import { parseSkills, SKILLS_KEY } from './skills.js';
 import { findVenue, venueWrites } from './venues.js';
 import { parseAchievements, achievementWrites, achievementSnapshot, encodeAchievements } from './achievements.js';
+import { storyChoiceConflicts } from './story.js';
 
 export { SaveFormatError, UnsupportedEditError };
 
@@ -241,6 +242,9 @@ export function applyEdits(save, edits) {
 
   const varEdits = Object.entries(edits.variables ?? {});
   if (varEdits.length) {
+    const conflicts = storyChoiceConflicts(save.tables[0].entries.map((v) => ({ ...v,
+      value: Object.hasOwn(edits.variables, v.name) ? edits.variables[v.name] : v.value })));
+    if (conflicts.length) throw new UnsupportedEditError(`Conflicting story choices: ${conflicts.join(', ')}`);
     if (!save.tablesConsistent) throw new UnsupportedEditError('Variable tables disagree in this save; refusing to edit variables');
     const indexByName = new Map(save.tables[0].entries.map((e, i) => [e.name, i]));
     for (const [name, value] of varEdits) {

@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'node:fs';
 import {
   parseSave, summarize, listVariables, diffSaves, applyEdits, roundTripCheck, formatCredits, currentGameDay, xpForLevel,
   findVenue, averageReviewScore,
-  ACHIEVEMENT_NAMES, storyToggleEdits,
+  ACHIEVEMENT_NAMES, storyCompletionEdits, storyChoiceConflicts,
 } from '../core/index.js';
 
 const { items: CATALOG, skills: SKILLS, venues: VENUES } = JSON.parse(readFileSync(new URL('../src/data/items.json', import.meta.url), 'utf8'));
@@ -48,7 +48,7 @@ const USAGE = `Usage:
   nnsave venues <file.sav>
   nnsave edit <file.sav> [--money <credits>] [--set Name.Var=value]... [--add-item <container>:<item>:<qty>]...
               [--skill <name>=<level>]... [--venue <venue>.(level|served|stars)=<n>]...
-              [--finish-story-flags | --enable-story-toggles] (-o <out.sav> | --in-place)`;
+              [--finish-story] (-o <out.sav> | --in-place)`;
 
 const load = (path) => parseSave(new Uint8Array(readFileSync(path)));
 const show = (v) => (typeof v === 'string' ? JSON.stringify(v) : String(v));
@@ -172,15 +172,14 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
         else if (a === '--venue') venueSpecs.push(rest[++i]);
         else if (a === '-o') out = rest[++i];
         else if (a === '--in-place') inPlace = true;
-        else if (a === '--finish-story-flags') storyMode = true;
-        else if (a === '--enable-story-toggles') storyMode = false;
+        else if (a === '--finish-story' || a === '--finish-story-flags') storyMode = true;
         else throw new Error(`Unknown option ${a}`);
       }
       if (!out && !inPlace) throw new Error('Specify -o <out.sav> or --in-place');
       const save = load(path);
       if (storyMode !== undefined) {
-        console.log('WARNING: Story flag edits do not run quests; enabling all toggles includes failure flags and conflicting choices.');
-        edits.variables = { ...storyToggleEdits(listVariables(save), { completionOnly: storyMode }), ...edits.variables };
+        console.log('Reviewed completion flags and one outcome per supported choice group staged. This does not run quests or guarantee full story completion.');
+        edits.variables = { ...storyCompletionEdits(listVariables(save)), ...edits.variables };
       }
       if (!save.header.versionTested) console.log(`WARNING: save version ${save.header.version} is untested; the game may not load the edited save correctly`);
       for (const spec of skillLevels) {
@@ -216,6 +215,8 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
           else items.push({ guid, stacks: [stack] });
         }
       }
+      const conflicts = storyChoiceConflicts(listVariables(save).map((v) => ({ ...v, value: Object.hasOwn(edits.variables, v.name) ? edits.variables[v.name] : v.value })));
+      if (Object.keys(edits.variables).length && conflicts.length) throw new Error(`Conflicting story choices: ${conflicts.join(', ')}`);
       const edited = applyEdits(save, edits);
       const target = out ?? path;
       if (inPlace) {
