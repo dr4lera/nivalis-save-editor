@@ -1,4 +1,4 @@
-# Nivalis Save Editor
+# Nivalis Save Editor -- THAT WILL ACTUALLY WORK AND 100% UR GAME
 
 A small desktop editor for **Nivalis Nights** save files (`.sav`), built with Tauri.
 
