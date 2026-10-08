@@ -109,7 +109,8 @@ function refreshAfterVarEdit() {
   else renderTab();
 }
 
-function setVariableEdit(name, value) {
+function setVariableEdit(name, value, { fromBatch = false } = {}) {
+  if (!fromBatch && state.storyBatch) state.storyBatch = state.storyBatch.filter((entry) => entry.name !== name);
   const original = state.current.varIndex.get(name);
   if (value === original.value) state.edits.variables.delete(name);
   else state.edits.variables.set(name, value);
@@ -466,7 +467,7 @@ async function stageStoryToggles(completionOnly) {
   const preview = changes.slice(0, 12).map(([name]) => name).join('\n');
   if (!(await ask(`${warning}\n\nStage ${changes.length} changes across all groups, regardless of search filters?\n\n${preview}${changes.length > 12 ? '\n…' : ''}\n\nYou can review, undo or discard them before saving.`, { title: completionOnly ? 'Finish completion flags' : 'Enable all story toggles', kind: 'warning' }))) return;
   state.storyBatch = changes.map(([name]) => ({ name, before: currentValue(state.current.varIndex.get(name)) }));
-  for (const [name, value] of changes) setVariableEdit(name, value);
+  for (const [name, value] of changes) setVariableEdit(name, value, { fromBatch: true });
   renderTab();
   toast(`${changes.length} story toggles staged. Review them with Changed only before saving.`);
 }
