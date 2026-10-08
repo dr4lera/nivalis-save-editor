@@ -6,6 +6,8 @@ A small desktop editor for **Nivalis Nights** save files (`.sav`), built with Ta
 - Edit **money**
 - **Skills**: set the level of each skill you have started (Barter, Boat, Cooking, Farming, Fishing, Serving, Managing)
 - Browse, search and edit the game's **1,800+ story variables** (flags and numbers: relationships, venue levels, quest steps, …)
+- **Story bulk actions**: finish explicit completion flags, or enable every boolean story toggle, with a change preview and undo before saving. The broad action includes failure flags and conflicting choices; neither action runs quests or guarantees a finished story.
+- **Achievements**: browse and search 11 named achievement series, edit saved counters and points, and toggle the 17 individually stored business entries. Edits use the normal verified save and backup workflow, update total saved points and appear in comparisons. Steam unlocks and in-game completion have not been verified.
 - **Inventory**: view and edit the items in your inventory, your venues' storage, fridges and furniture, and vendor stock; add any of 1,300+ items, change quantities and freshness
 - **Compare** two saves to see which variables a quest step changed, and copy values across
 - **People** and **Venues**: friendly editors for relationship levels and for venue level, customers served and review stars; debt on the overview
@@ -22,6 +24,7 @@ Tested with save versions **151** and **153** (the game patch of 1 October 2026)
 | ![Overview: save details, money and debt](docs/screenshots/overview.png) | ![Inventory: add items, edit quantity and freshness](docs/screenshots/inventory.png) |
 | ![People: relationship levels](docs/screenshots/people.png) | ![Venues: level and reviews](docs/screenshots/venues.png) |
 | ![Backups: history, comparison and restore](docs/screenshots/backups.png) | |
+| ![Achievements: business entries and counters](docs/screenshots/achievements.png) | ![Story variables: bulk actions and undo](docs/screenshots/story-toggles.png) |
 
 ## Development
 
@@ -52,9 +55,13 @@ npm run cli -- vars  <save.sav> [filter]
 npm run cli -- diff  <old.sav> <new.sav>
 npm run cli -- check <save.sav>...
 npm run cli -- skills <save.sav>
+npm run cli -- achievements <save.sav>
 npm run cli -- venues <save.sav>
 npm run cli -- edit  <save.sav> --money 2500.00 --set GameState.Debt=0 --skill Boat=3 -o out.sav
 npm run cli -- edit  <save.sav> --venue Venue_NoodleBar.level=5 --venue Venue_NoodleBar.served=600 --venue Venue_NoodleBar.stars=5 -o out.sav
+npm run cli -- edit  <save.sav> --finish-story-flags -o out.sav
+# Advanced: enables every boolean, including failures and conflicting choices
+npm run cli -- edit  <save.sav> --enable-story-toggles -o out.sav
 ```
 
 ## Layout
@@ -112,7 +119,11 @@ Layout: `int32 count`, then for each entry `string name, int32 type, value`. Int
 
 Freshness is counted in 8-hour units and drops at 00:00, 08:00 and 16:00; 0 means the item doesn't spoil. Inventory edits change the file size, so the editor re-encodes the section and shifts every later Ghost block end offset.
 
-**Skills** (section key `2F00F72D-896A-42F8-92C4-E775FB79970E`). `int32 count`, then per skill `string skillGuid, float xp, int32 level`. A skill gets an entry once the player has gained XP in it. XP is cumulative; each skill definition in the game assets lists the XP every level costs (Boat: 2000, 5000, 10000, …, so level 2 starts at 7000), and the stored level always matches the XP. Stored levels start at 0, while the game shows them starting at 1; the editor and the CLI use the game's numbering. The game has been seen to store `NaN` as the XP of a skill at its top level. The section after it (`55F0A877-…`) holds achievement counters.
+**Skills** (section key `2F00F72D-896A-42F8-92C4-E775FB79970E`). `int32 count`, then per skill `string skillGuid, float xp, int32 level`. A skill gets an entry once the player has gained XP in it. XP is cumulative; each skill definition in the game assets lists the XP every level costs (Boat: 2000, 5000, 10000, …, so level 2 starts at 7000), and the stored level always matches the XP. Stored levels start at 0, while the game shows them starting at 1; the editor and the CLI use the game's numbering. The game has been seen to store `NaN` as the XP of a skill at its top level.
+
+**Achievements** (`03H1F65F-148C-9E66-GHQE-4109P1286Q17`). Structural round-trips and edits verified against two local version **159** saves; the existing untested-version warning remains because no in-game loading was tested. Layout: `int32 totalPoints, int32 seriesCount`, then per series `string guid, int32 completedEntriesCount, int32 points, byte isCompleted, int32 singularEntryCount, byte[] singularEntriesSave`. Field names were checked in the installed game's IL2CPP metadata; series names and business entry ordering were checked against its asset definitions. The earlier `55F0A877-…` section contains GUID/boolean records and is left untouched. Counter edits retain the saved series completion byte. No records are inserted or resized; missing sections show an unavailable message, malformed sections refuse editing. Total points change by the delta in edited series points.
+
+**Bulk story actions.** “Finish completion flags” selects boolean names ending in Complete, Completed, Finished or Done (optionally followed by digits). “Enable all story toggles” selects all booleans. Both operate across all groups regardless of the current search filters, stage edits to both variable tables, preserve numbers/text, and require the normal backed-up save action. Undo restores the prior staged values while preserving subsequent manual changes. There is no universal quest-completion recipe: quest steps, relationships, world entities and mutually exclusive outcomes cannot be inferred from toggles alone.
 
 **Venues** (`VenueAreaGhost`, one Ghost block per venue). The level, customers served and reviews live here; the `Venue_<name>.Level`, `.CustomersServed`, `.ReviewScore` and `.ReviewAmount` story variables are copies the game rewrites from this record when a save loads (it only does so for some venues, so the copies of NPC-run venues can be stale). Editing only the variables therefore has no effect in the game. The record is the block that contains the venue's GUID and has this shape:
 

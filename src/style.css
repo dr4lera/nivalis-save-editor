@@ -281,7 +281,7 @@ input.invalid { border-color: var(--error); }
   margin-bottom: 18px;
 }
 
-.tabs { display: flex; gap: 4px; background: var(--bg-elev); padding: 4px; border-radius: var(--radius); border: 1px solid var(--border); }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; background: var(--bg-elev); padding: 4px; border-radius: var(--radius); border: 1px solid var(--border); }
 .tab {
   border: none;
   background: transparent;
@@ -499,3 +499,10 @@ table.backups tr.selected { background: var(--accent-soft); }
 .backup-compare { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
 .backup-shot { width: 240px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
 code { font-family: var(--mono); font-size: 12px; }
+
+.achievement-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+.achievement-fields { display: flex; flex-wrap: wrap; gap: 16px; }
+.achievement-fields label { display: flex; flex-direction: column; gap: 6px; color: var(--text-muted); }
+.achievement-entry { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.achievement-grid details { margin: 12px 0; }
+.achievement-grid summary { cursor: pointer; }

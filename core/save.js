@@ -21,6 +21,7 @@ import { SaveFormatError, UnsupportedEditError } from './errors.js';
 import { parseInventory, encodeInventoryBody, validateInventoryItems } from './inventory.js';
 import { parseSkills, SKILLS_KEY } from './skills.js';
 import { findVenue, venueWrites } from './venues.js';
+import { parseAchievements, achievementWrites, achievementSnapshot, encodeAchievements } from './achievements.js';
 
 export { SaveFormatError, UnsupportedEditError };
 
@@ -145,6 +146,7 @@ export function parseSave(input) {
   const playerMoney = locatePlayerMoney(bytes, ghostBlocks);
   const inventory = parseInventory(bytes);
   const skills = parseSkills(bytes);
+  const achievements = parseAchievements(bytes);
 
   const warnings = [];
   if (playerMoney.value !== header.moneyCents) {
@@ -166,7 +168,7 @@ export function parseSave(input) {
     warnings.push('Variable tables have different lengths');
   }
 
-  return { bytes, header, ghostBlocks, tables, playerMoney, inventory, skills, tablesConsistent, warnings };
+  return { bytes, header, ghostBlocks, tables, playerMoney, inventory, skills, achievements, tablesConsistent, warnings };
 }
 
 // Current in-game day as the game counts it (GameDay.Day, 1-based); used for newly added stacks.
@@ -217,7 +219,8 @@ export function formatCredits(cents) {
 
 // Returns a new byte array with the edits applied and verified:
 //   edits = { moneyCents?, variables?: { name: value }, inventory?: { containerKey: items[] },
-//             skills?: { skillGuid: { xp, level } }, venues?: { venueGuid: { level?, mealsServed?, reviewScore? } } }
+//             skills?: { skillGuid: { xp, level } }, venues?: { venueGuid: { level?, mealsServed?, reviewScore? } },
+//             achievements?: { seriesGuid: { completed?, earned?, flags?: boolean[] } } }
 // Inventory entries replace the full item list of that container ({ guid, stacks: [{ price, day, quantity, freshness }] }).
 export function applyEdits(save, edits) {
   const out = new Uint8Array(save.bytes);
@@ -272,6 +275,13 @@ export function applyEdits(save, edits) {
     writeFloat32(out, entry.xpOffset, xp);
     for (let i = 0; i < 4; i++) changedOffsets.add(entry.xpOffset + i);
     write32(entry.levelOffset, level);
+  }
+
+  if (Object.keys(edits.achievements ?? {}).length) {
+    for (const [pos, value, size] of achievementWrites(save.achievements, edits.achievements)) {
+      if (size === 4) write32(pos, value);
+      else { out[pos] = value; changedOffsets.add(pos); }
+    }
   }
 
   for (const [id, edit] of Object.entries(edits.venues ?? {})) {
@@ -342,6 +352,16 @@ function spliceInventory(save, bytes, invEdits) {
 
 function verifyEdited(original, bytes, edits) {
   const reparsed = parseSave(bytes);
+  const expectedAchievements = achievementSnapshot(original.achievements);
+  if (Object.keys(edits.achievements ?? {}).length) {
+    for (const [guid, edit] of Object.entries(edits.achievements)) {
+      const entry = expectedAchievements.entries.find((e) => e.guid === guid);
+      expectedAchievements.points += (edit.earned ?? entry.earned) - entry.earned;
+      Object.assign(entry, edit);
+      if (edit.flags) entry.flags = edit.flags.map(Number);
+    }
+  }
+  if (JSON.stringify(achievementSnapshot(reparsed.achievements)) !== JSON.stringify(expectedAchievements)) throw new SaveFormatError('Achievements did not verify after edit');
   if (reparsed.ghostBlocks.length !== original.ghostBlocks.length) throw new SaveFormatError('Ghost block index changed after edit');
   reparsed.ghostBlocks.forEach((g, i) => {
     if (g.tag !== original.ghostBlocks[i].tag) throw new SaveFormatError(`Ghost block ${i} changed identity after edit`);
@@ -393,6 +413,7 @@ function verifyEdited(original, bytes, edits) {
 // Re-encodes the parsed structures and compares them with the original bytes; proves the model is lossless.
 export function roundTripCheck(save) {
   const problems = [];
+  if (save.achievements && !bytesEqual(encodeAchievements(save.achievements), save.bytes.subarray(save.achievements.start, save.achievements.end))) problems.push('Achievement section does not re-encode identically');
   for (const [def, table] of VARIABLE_TABLES.map((d, i) => [d, save.tables[i]])) {
     const codeFor = Object.fromEntries(Object.entries(def.types).map(([code, kind]) => [kind, Number(code)]));
     const parts = [encodeString(def.key), int32Bytes(table.entries.length)];
@@ -459,7 +480,15 @@ export function diffSaves(a, b) {
     before.delete(e.name);
   }
   for (const old of before.values()) variables.push({ name: old.name, kind: old.kind, before: old.value, after: undefined });
-  return { header, variables, inventory: diffInventories(a.inventory, b.inventory), skills: diffSkills(a.skills, b.skills) };
+  const oldAchievements = new Map(a.achievements?.entries.map((e) => [e.guid, e]) ?? []);
+  const achievements = (b.achievements?.entries ?? []).flatMap((entry) => {
+    const before = oldAchievements.get(entry.guid);
+    oldAchievements.delete(entry.guid);
+    const pick = (e) => e && { completed: e.completed, earned: e.earned, isCompleted: e.isCompleted, flags: e.flags };
+    return JSON.stringify(pick(before)) === JSON.stringify(pick(entry)) ? [] : [{ guid: entry.guid, before: pick(before), after: pick(entry) }];
+  });
+  for (const entry of oldAchievements.values()) achievements.push({ guid: entry.guid, before: entry, after: undefined });
+  return { header, variables, achievements, inventory: diffInventories(a.inventory, b.inventory), skills: diffSkills(a.skills, b.skills) };
 }
 
 function diffSkills(a, b) {
@@ -496,7 +525,7 @@ function diffInventories(a, b) {
       const y = after.get(guid);
       if ((x?.qty ?? 0) !== (y?.qty ?? 0)) {
         changes.push({ container: c.key, guid, before: x?.qty ?? 0, after: y?.qty ?? 0 });
-      } else if (JSON.stringify(x.stacks) !== JSON.stringify(y.stacks)) {
+      } else if (JSON.stringify(x?.stacks) !== JSON.stringify(y?.stacks)) {
         changes.push({ container: c.key, guid, before: x.qty, after: y.qty, stacksChanged: true });
       }
     }

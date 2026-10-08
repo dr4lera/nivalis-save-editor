@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'node:fs';
 import {
   parseSave, summarize, listVariables, diffSaves, applyEdits, roundTripCheck, formatCredits, currentGameDay, xpForLevel,
   findVenue, averageReviewScore,
+  ACHIEVEMENT_NAMES, storyToggleEdits,
 } from '../core/index.js';
 
 const { items: CATALOG, skills: SKILLS, venues: VENUES } = JSON.parse(readFileSync(new URL('../src/data/items.json', import.meta.url), 'utf8'));
@@ -43,10 +44,11 @@ const USAGE = `Usage:
   nnsave check <file.sav>...
   nnsave inv <file.sav> [container]
   nnsave skills <file.sav>
+  nnsave achievements <file.sav>
   nnsave venues <file.sav>
   nnsave edit <file.sav> [--money <credits>] [--set Name.Var=value]... [--add-item <container>:<item>:<qty>]...
               [--skill <name>=<level>]... [--venue <venue>.(level|served|stars)=<n>]...
-              (-o <out.sav> | --in-place)`;
+              [--finish-story-flags | --enable-story-toggles] (-o <out.sav> | --in-place)`;
 
 const load = (path) => parseSave(new Uint8Array(readFileSync(path)));
 const show = (v) => (typeof v === 'string' ? JSON.stringify(v) : String(v));
@@ -108,6 +110,13 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
       }
       return 0;
     }
+    case 'achievements': {
+      const section = load(args[0]).achievements;
+      if (!section) throw new Error('No supported achievement section in this save');
+      console.log(`Total saved points: ${section.points}`);
+      for (const e of section.entries) console.log(`${(ACHIEVEMENT_NAMES[e.guid] ?? e.guid).padEnd(24)} completed ${e.completed}  points ${e.earned}  series complete ${e.isCompleted}  entries ${e.flags.join('') || '-'}`);
+      return 0;
+    }
     case 'venues': {
       const save = load(args[0]);
       for (const [id, info] of Object.entries(VENUES)) {
@@ -122,6 +131,7 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
       const d = diffSaves(load(args[0]), load(args[1]));
       for (const h of d.header) console.log(`[header] ${h.field}: ${h.before} -> ${h.after}`);
       for (const s of d.skills) console.log(`[skill] ${skillName(s.guid)}: level ${shownLevel(s.before?.level)} xp ${s.before?.xp} -> level ${shownLevel(s.after?.level)} xp ${s.after?.xp}`);
+      for (const a of d.achievements) console.log(`[achievement] ${ACHIEVEMENT_NAMES[a.guid] ?? a.guid}: ${JSON.stringify(a.before)} -> ${JSON.stringify(a.after)}`);
       for (const v of d.variables) console.log(`${v.name}: ${show(v.before)} -> ${show(v.after)}`);
       console.log(`${d.variables.length} variable(s) changed`);
       return 0;
@@ -150,6 +160,7 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
       const venueSpecs = [];
       let out;
       let inPlace = false;
+      let storyMode;
       for (let i = 0; i < rest.length; i++) {
         const a = rest[i];
         if (a === '--money') edits.moneyCents = parseCredits(rest[++i]);
@@ -161,10 +172,16 @@ ${c.key} (${c.kind}${c.storage ? `, ${c.storage}` : ''}, ${c.items.length} items
         else if (a === '--venue') venueSpecs.push(rest[++i]);
         else if (a === '-o') out = rest[++i];
         else if (a === '--in-place') inPlace = true;
+        else if (a === '--finish-story-flags') storyMode = true;
+        else if (a === '--enable-story-toggles') storyMode = false;
         else throw new Error(`Unknown option ${a}`);
       }
       if (!out && !inPlace) throw new Error('Specify -o <out.sav> or --in-place');
       const save = load(path);
+      if (storyMode !== undefined) {
+        console.log('WARNING: Story flag edits do not run quests; enabling all toggles includes failure flags and conflicting choices.');
+        edits.variables = { ...storyToggleEdits(listVariables(save), { completionOnly: storyMode }), ...edits.variables };
+      }
       if (!save.header.versionTested) console.log(`WARNING: save version ${save.header.version} is untested; the game may not load the edited save correctly`);
       for (const spec of skillLevels) {
         const [query, raw] = spec.split('=');

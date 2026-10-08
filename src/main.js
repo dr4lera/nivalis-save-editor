@@ -4,6 +4,7 @@ import { open, ask, message } from '@tauri-apps/plugin-dialog';
 import {
   parseSave, summarize, listVariables, diffSaves, applyEdits, formatCredits, currentGameDay, xpForLevel, INT32_MAX, TESTED_VERSIONS,
   findVenue, averageReviewScore, VENUE_MAX_LEVEL, REVIEW_MAX_SCORE,
+  ACHIEVEMENT_NAMES, storyToggleEdits,
 } from '../core/index.js';
 import { areaName } from './areas.js';
 import {
@@ -25,6 +26,8 @@ const state = {
   backups: null, // { path, list, selected: { id, backup, diff, shot } }
   backupFolder: null,
   filters: { q: '', group: '', kind: '', modifiedOnly: false },
+  achievementSearch: '',
+  storyBatch: null,
   compare: null, // { entry, diff }
 };
 
@@ -87,11 +90,12 @@ function toast(text, kind = 'ok') {
 
 function pendingCount() {
   return (state.edits.moneyCents !== undefined ? 1 : 0) + state.edits.variables.size + state.edits.inventory.size
-    + state.edits.skills.size + state.edits.venues.size;
+    + state.edits.skills.size + state.edits.venues.size + state.edits.achievements.size;
 }
 
 function resetEdits() {
-  state.edits = { moneyCents: undefined, variables: new Map(), inventory: new Map(), skills: new Map(), venues: new Map() };
+  state.edits = { moneyCents: undefined, variables: new Map(), inventory: new Map(), skills: new Map(), venues: new Map(), achievements: new Map() };
+  state.storyBatch = null;
 }
 resetEdits();
 
@@ -193,7 +197,7 @@ async function openSave(entry) {
 
 function renderMain() {
   const { entry, summary } = state.current;
-  const tabs = [['overview', 'Overview'], ['inventory', 'Inventory'], ['people', 'People'], ['venues', 'Venues'], ['variables', `Story variables <span class="count">${summary.variableCount}</span>`], ['compare', 'Compare'], ['backups', 'Backups']];
+  const tabs = [['overview', 'Overview'], ['inventory', 'Inventory'], ['people', 'People'], ['venues', 'Venues'], ['achievements', 'Achievements'], ['variables', `Story variables <span class="count">${summary.variableCount}</span>`], ['compare', 'Compare'], ['backups', 'Backups']];
   $('#main').innerHTML = `
     <div class="save-header">
       <div>
@@ -215,6 +219,7 @@ function renderTab() {
   else if (state.tab === 'inventory') { body.innerHTML = inventoryShellHtml(); renderInventoryRows(); }
   else if (state.tab === 'people') { body.innerHTML = peopleShellHtml(); renderPeopleRows(); }
   else if (state.tab === 'venues') body.innerHTML = venuesHtml();
+  else if (state.tab === 'achievements') { body.innerHTML = achievementsShellHtml(); renderAchievementRows(); }
   else if (state.tab === 'backups') {
     body.innerHTML = backupsHtml();
     if (state.backups?.path !== state.current.entry.path) loadBackups().then(() => { if (state.tab === 'backups') renderTab(); });
@@ -426,6 +431,11 @@ function variablesShellHtml() {
     .map(([g, n]) => `<option value="${escapeHtml(g)}" ${f.group === g ? 'selected' : ''}>${escapeHtml(g || '(no group)')} (${n})</option>`).join('');
   return `
     <div class="toolbar">
+      <button class="btn" id="story-finish" ${state.current.save.tablesConsistent ? '' : 'disabled'}>Finish completion flags</button>
+      <button class="btn" id="story-enable-all" ${state.current.save.tablesConsistent ? '' : 'disabled'}>Enable all story toggles</button>
+      <button class="btn btn-ghost" id="story-undo" ${state.storyBatch ? '' : 'disabled'}>Undo last bulk action</button>
+    </div>
+    <div class="toolbar">
       <input id="var-search" type="search" placeholder="Search variables… e.g. Romance, Venue, Debt" value="${escapeHtml(f.q)}">
       <select id="var-group"><option value="">All groups</option>${options}</select>
       <select id="var-kind">
@@ -444,6 +454,71 @@ function variablesShellHtml() {
         <tbody id="var-rows"></tbody>
       </table>
     </div>`;
+}
+
+async function stageStoryToggles(completionOnly) {
+  const edits = storyToggleEdits(state.current.vars, { completionOnly });
+  const changes = Object.entries(edits).filter(([name, value]) => currentValue(state.current.varIndex.get(name)) !== value);
+  if (!changes.length) { toast('All matching toggles are already enabled.'); return; }
+  const warning = completionOnly
+    ? 'Sets boolean variables ending in Complete, Completed, Finished or Done to true. This does not run quests or set numeric quest steps.'
+    : 'Sets EVERY boolean story variable to true, including failure flags, mutually exclusive choices and world state. This can break quests and is not a guaranteed completed story.';
+  const preview = changes.slice(0, 12).map(([name]) => name).join('\n');
+  if (!(await ask(`${warning}\n\nStage ${changes.length} changes across all groups, regardless of search filters?\n\n${preview}${changes.length > 12 ? '\n…' : ''}\n\nYou can review, undo or discard them before saving.`, { title: completionOnly ? 'Finish completion flags' : 'Enable all story toggles', kind: 'warning' }))) return;
+  state.storyBatch = changes.map(([name]) => ({ name, before: currentValue(state.current.varIndex.get(name)) }));
+  for (const [name, value] of changes) setVariableEdit(name, value);
+  renderTab();
+  toast(`${changes.length} story toggles staged. Review them with Changed only before saving.`);
+}
+
+// ---------- achievements ----------
+
+const BUSINESS_ENTRIES = ['First customer', 'First four-star review', '1,000 revenue', 'Four-star average reviews',
+  'First five-star review', 'Handle a complaint', 'Serve 100 customers', 'Serve 500 customers', 'Own two venues',
+  'Own five venues', 'Offer drinks', 'Offer a dessert', '500 daily revenue', 'Pictures on the wall',
+  'Umbrella Corp', 'Debt free', 'Pay back a loan'];
+
+function achievementName(guid) { return ACHIEVEMENT_NAMES[guid] ?? guid; }
+
+function achievementValues(entry) {
+  return { ...entry, ...state.edits.achievements.get(entry.guid) };
+}
+
+function setAchievementEdit(guid, edit) {
+  const entry = state.current.save.achievements.entries.find((e) => e.guid === guid);
+  const next = { ...state.edits.achievements.get(guid), ...edit };
+  for (const field of Object.keys(next)) {
+    const original = field === 'flags' ? entry.flags.map(Boolean) : entry[field];
+    if (JSON.stringify(next[field]) === JSON.stringify(original)) delete next[field];
+  }
+  if (Object.keys(next).length) state.edits.achievements.set(guid, next);
+  else state.edits.achievements.delete(guid);
+  renderPending();
+}
+
+function achievementsShellHtml() {
+  if (!state.current.save.achievements) return '<div class="card"><h2>Achievements unavailable</h2><p class="hint">This save does not contain a supported achievement section.</p></div>';
+  return `<div class="toolbar"><input id="achievement-search" type="search" placeholder="Search achievement series…" value="${escapeHtml(state.achievementSearch)}"><span id="achievement-count" class="subtle"></span></div>
+    <p class="hint">Saved achievement progress. Counters do not discover collectibles or finish quests, and Steam unlocks are not guaranteed. Individual entry toggles are available where the save stores them. The saved series completion state is preserved.</p>
+    <div id="achievement-rows" class="achievement-grid"></div>`;
+}
+
+function renderAchievementRows() {
+  const section = state.current.save.achievements;
+  if (!section) return;
+  const expanded = new Set([...document.querySelectorAll('details[data-achievement-details][open]')].map((el) => el.dataset.achievementDetails));
+  const total = section.points + section.entries.reduce((n, entry) => n + (achievementValues(entry).earned - entry.earned), 0);
+  const rows = section.entries.filter((entry) => achievementName(entry.guid).toLowerCase().includes(state.achievementSearch.toLowerCase().trim()));
+  $('#achievement-count').textContent = `${rows.length} series · ${total} saved points`;
+  $('#achievement-rows').innerHTML = rows.map((entry) => {
+    const value = achievementValues(entry);
+    const modified = state.edits.achievements.has(entry.guid);
+    return `<div class="card ${modified ? 'modified' : ''}"><h2>${escapeHtml(achievementName(entry.guid))}</h2>
+      <div class="achievement-fields"><label>Completed entries <input class="num" type="number" min="0" max="${INT32_MAX}" step="1" data-achievement="${entry.guid}" data-achievement-field="completed" value="${value.completed}" ${entry.flags.length ? 'disabled' : ''}></label>
+      <label>Saved points <input class="num" type="number" min="0" max="${INT32_MAX}" step="1" data-achievement="${entry.guid}" data-achievement-field="earned" value="${value.earned}"></label></div>
+      ${entry.flags.length ? `<details data-achievement-details="${entry.guid}" ${expanded.has(entry.guid) ? 'open' : ''}><summary>Individual entries (${value.completed}/${entry.flags.length})</summary>${value.flags.map((flag, i) => `<label class="check achievement-entry"><input type="checkbox" data-achievement="${entry.guid}" data-achievement-entry="${i}" ${flag ? 'checked' : ''}>${escapeHtml(achievementName(entry.guid) === 'Business' && entry.flags.length === BUSINESS_ENTRIES.length ? BUSINESS_ENTRIES[i] : `Entry ${i + 1}`)}</label>`).join('')}</details>` : '<p class="hint">This series stores counters rather than individual entry flags.</p>'}
+      ${modified ? `<button class="link" data-achievement-revert="${entry.guid}">Revert series</button>` : ''}</div>`;
+  }).join('') || '<p class="hint">No achievements match.</p>';
 }
 
 function valueEditorHtml(v) {
@@ -790,12 +865,18 @@ function diffHtml(diff, beforeLabel, afterLabel, { allowTake = false } = {}) {
           <td class="actions">${allowTake && v.kind !== 'string' && v.before !== undefined ? `<button class="link" data-take="${escapeHtml(v.name)}" title="Stage the other save's value as an edit">Use other value</button>` : ''}</td>
         </tr>`).join('')}</tbody></table></div>` : '<p class="hint">No differences.</p>'}
     </div>`;
-  return headerCard + skillsCard + inventoryCard + variablesCard;
+  const achievementsCard = diff.achievements?.length ? `<div class="card"><h2>Achievements <span class="count">${diff.achievements.length}</span></h2>
+    <table class="diff vars"><thead><tr><th>Series</th><th>${escapeHtml(beforeLabel)}</th><th>${escapeHtml(afterLabel)}</th></tr></thead><tbody>${diff.achievements.map((a) => {
+      const label = (v) => v ? `${v.completed} entries · ${v.earned} points · flags ${v.flags.map(Number).join('') || 'none'}` : 'Not present';
+      return `<tr><td>${escapeHtml(achievementName(a.guid))}</td><td class="before">${escapeHtml(label(a.before))}</td><td class="after">${escapeHtml(label(a.after))}</td></tr>`;
+    }).join('')}</tbody></table></div>` : '';
+  return headerCard + skillsCard + achievementsCard + inventoryCard + variablesCard;
 }
 
 // One-line description of an edit, stored with the backup taken before it.
 function summarizeDiff(diff) {
   const parts = [];
+  if (diff.achievements?.length) parts.push(`${diff.achievements.length} achievement series changed`);
   for (const h of diff.header) parts.push(`${HEADER_LABELS[h.field]} ${formatHeaderValue(h.field, h.before)} → ${formatHeaderValue(h.field, h.after)}`);
   for (const s of diff.skills) {
     if (s.before?.level !== s.after?.level) parts.push(`${skillName(s.guid)} level ${shownLevel(s.before?.level ?? 0)} → ${shownLevel(s.after?.level ?? 0)}`);
@@ -968,6 +1049,7 @@ async function saveChanges() {
       inventory: Object.fromEntries(state.edits.inventory),
       skills: Object.fromEntries(state.edits.skills),
       venues: Object.fromEntries(state.edits.venues),
+      achievements: Object.fromEntries(state.edits.achievements),
     });
   } catch (e) {
     await message(e.message, { title: 'Cannot apply changes', kind: 'error' });
@@ -994,6 +1076,16 @@ document.addEventListener('click', async (e) => {
   if (!t) return;
   if (t.dataset.path) await selectSave(t.dataset.path);
   else if (t.dataset.tab) { state.tab = t.dataset.tab; renderMain(); }
+  else if (t.id === 'story-finish') await stageStoryToggles(true);
+  else if (t.id === 'story-enable-all') await stageStoryToggles(false);
+  else if (t.id === 'story-undo') {
+    for (const { name, before } of state.storyBatch ?? []) {
+      // Keep any manual edits made after the batch.
+      if (currentValue(state.current.varIndex.get(name)) === true) setVariableEdit(name, before);
+    }
+    state.storyBatch = null; renderTab();
+  }
+  else if (t.dataset.achievementRevert) { state.edits.achievements.delete(t.dataset.achievementRevert); renderPending(); renderAchievementRows(); }
   else if (t.dataset.addCredits) {
     const base = state.edits.moneyCents ?? state.current.summary.moneyCents;
     const next = Math.min(INT32_MAX, base + Number(t.dataset.addCredits) * 100);
@@ -1046,7 +1138,8 @@ document.addEventListener('input', (e) => {
     $('#money-hint').textContent = `Original: ${formatCredits(state.current.summary.moneyCents)} credits. Both copies in the save are updated.`;
     $('#money-reset').disabled = state.edits.moneyCents === undefined;
     renderPending();
-  } else if (t.id === 'var-search') { state.filters.q = t.value; renderVariableRows(); }
+  } else if (t.id === 'achievement-search') { state.achievementSearch = t.value; renderAchievementRows(); }
+  else if (t.id === 'var-search') { state.filters.q = t.value; renderVariableRows(); }
   else if (t.id === 'people-search') { state.peopleFilters.q = t.value; renderPeopleRows(); }
   else if (t.matches('.inv-qty, .inv-fresh')) {
     const isQty = t.classList.contains('inv-qty');
@@ -1081,6 +1174,21 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
   const t = e.target;
   if (t.id === 'var-group') { state.filters.group = t.value; renderVariableRows(); }
+  else if (t.dataset.achievementField) {
+    const ok = /^\d+$/.test(t.value) && Number(t.value) <= INT32_MAX;
+    t.classList.toggle('invalid', !ok);
+    if (ok) { setAchievementEdit(t.dataset.achievement, { [t.dataset.achievementField]: Number(t.value) }); renderAchievementRows(); }
+  }
+  else if (t.dataset.achievementEntry !== undefined) {
+    const entry = state.current.save.achievements.entries.find((a) => a.guid === t.dataset.achievement);
+    const flags = achievementValues(entry).flags.map(Boolean);
+    flags[Number(t.dataset.achievementEntry)] = t.checked;
+    const completed = flags.filter(Boolean).length;
+    // Each saved business entry awards one point. Preserve any previously staged point adjustment.
+    const isBusiness = achievementName(entry.guid) === 'Business' && flags.length === BUSINESS_ENTRIES.length;
+    const earned = Math.max(0, achievementValues(entry).earned + (isBusiness ? completed - achievementValues(entry).completed : 0));
+    setAchievementEdit(entry.guid, { flags, completed, earned }); renderAchievementRows();
+  }
   else if (t.id === 'var-kind') { state.filters.kind = t.value; renderVariableRows(); }
   else if (t.id === 'var-modified') { state.filters.modifiedOnly = t.checked; renderVariableRows(); }
   else if (t.id === 'compare-select') runCompare(t.value);
